@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "565070198305",
+    "project_id": "atlas007",
+    "storage_bucket": "atlas007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565070198305:android:7ad9e3553cee9ff562d560",
+        "android_client_info": {
+          "package_name": "com.orange.atlas.atlas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmLFOEwa6OX8AhL0lKfbrDkMeQQ1QY0Ho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
