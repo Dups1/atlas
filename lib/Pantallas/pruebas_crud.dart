@@ -53,82 +53,105 @@ class _PantallaCrudState extends State<PantallaCrud> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent, // 👈 importante
       appBar: AppBar(
         title: const Text('Pruebas'),
         centerTitle: true,
+        backgroundColor: Colors.black.withOpacity(0.7),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // INPUT
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Nombre',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // BOTONES
-            Row(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/orange.jpeg"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          color: Colors.black.withOpacity(0.3), // 👈 overlay
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: crear,
-                    child: const Text("Crear"),
+                // INPUT
+                TextField(
+                  controller: controller,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Nombre',
+                    labelStyle: const TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
+
+                const SizedBox(height: 10),
+
+                // BOTONES
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: crear,
+                        child: const Text("Crear"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: actualizar,
+                        child: const Text("Actualizar"),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // LISTA
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: actualizar,
-                    child: const Text("Actualizar"),
+                  child: ListView.builder(
+                    itemCount: datos.length,
+                    itemBuilder: (context, index) {
+                      final item = datos[index];
+
+                      return Card(
+                        color: Colors.white.withOpacity(0.85), // 👈 transparencia
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          title: Text(item['nombre'].toString()),
+                          subtitle: Text("ID: ${item['id']}"),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // EDITAR
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () {
+                                  controller.text = item['nombre'];
+                                  selectedId = item['id'];
+                                },
+                              ),
+
+                              // ELIMINAR
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () => eliminar(item['id']),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 10),
-
-            // LISTA
-            Expanded(
-              child: ListView.builder(
-                itemCount: datos.length,
-                itemBuilder: (context, index) {
-                  final item = datos[index];
-
-                  return Card(
-                    child: ListTile(
-                      title: Text(item['nombre'].toString()),
-                      subtitle: Text("ID: ${item['id']}"),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // EDITAR
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () {
-                              controller.text = item['nombre'];
-                              selectedId = item['id'];
-                            },
-                          ),
-
-                          // ELIMINAR
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => eliminar(item['id']),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
