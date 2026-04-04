@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+=======
 pubspec.lock
 # IntelliJ related
 *.iml
@@ -43,3 +45,4 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/functions/node_modules/
