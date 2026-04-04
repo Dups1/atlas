@@ -57,7 +57,7 @@ class _PantallaCrudState extends State<PantallaCrud> {
       appBar: AppBar(
         title: const Text('Pruebas'),
         centerTitle: true,
-        backgroundColor: Colors.black.withOpacity(0.7),
+        backgroundColor: const Color(0xB2000000),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -67,7 +67,7 @@ class _PantallaCrudState extends State<PantallaCrud> {
           ),
         ),
         child: Container(
-          color: Colors.black.withOpacity(0.3), // 👈 overlay
+          color: const Color(0x4D000000), // 👈 overlay
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
@@ -80,7 +80,7 @@ class _PantallaCrudState extends State<PantallaCrud> {
                     labelText: 'Nombre',
                     labelStyle: const TextStyle(color: Colors.white),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.2),
+                    fillColor: const Color(0x33FFFFFF),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -118,7 +118,7 @@ class _PantallaCrudState extends State<PantallaCrud> {
                       final item = datos[index];
 
                       return Card(
-                        color: Colors.white.withOpacity(0.85), // 👈 transparencia
+                        color: const Color(0xD9FFFFFF), // 👈 transparencia
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
