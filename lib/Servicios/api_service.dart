@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final String baseUrl = "http://localhost:3000"; // entrar web para vber que la api jala ejej
+  final String baseUrl = "https://backend-atlas-gwxq.onrender.com";
 
   Future<List<dynamic>> getDatos() async {
     final res = await http.get(Uri.parse('$baseUrl/datos'));
