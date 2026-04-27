@@ -20,7 +20,7 @@ class _TextScreenState extends State<TextScreen> {
       MaterialPageRoute(builder: (_) => const PantallaCrud()),
     );
   }
-
+// Inyectar ejemplos en Firestore
   Future<void> _injectExamples() async {
     setState(() {
       _inserting = true;
