@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../servicios/firestore_service.dart';
-  final _service = FirestoreService();
+import 'pruebas_crud.dart';
 
 class TextScreen extends StatefulWidget {
   const TextScreen({super.key});
@@ -11,9 +11,16 @@ class TextScreen extends StatefulWidget {
 }
 
 class _TextScreenState extends State<TextScreen> {
+  final _service = FirestoreService();
   bool _inserting = false;
   String? _status;
 
+  void _navigateToCrud() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PantallaCrud()),
+    );
+  }
+// Inyectar ejemplos en Firestore
   Future<void> _injectExamples() async {
     setState(() {
       _inserting = true;
@@ -70,6 +77,14 @@ class _TextScreenState extends State<TextScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Inyectar ejemplos'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: _navigateToCrud,
+              child: const Text('Ir a CRUD'),
             ),
             if (_status != null) ...[
               const SizedBox(height: 16),

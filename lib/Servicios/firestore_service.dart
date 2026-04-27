@@ -1,15 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class FirestoreService {
-  final FirebaseFirestore _firestore;
-
-  FirestoreService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  final String _baseUrl = 'https://backend-atlas-gwxq.onrender.com';
 
   Future<String> injectExamples() async {
-    final collection = _firestore.collection('atlas_samples');
-    final batch = _firestore.batch();
-
     final samples = [
       {
         'nombre': 'Atlas Cliente',
@@ -17,7 +12,6 @@ class FirestoreService {
         'activo': true,
         'caracteristicas': ['rastreo', 'alertas', 'analisis'],
         'meta': {'version': '0.1', 'region': 'global'},
-        'creado': FieldValue.serverTimestamp(),
       },
       {
         'nombre': 'Modulo Energia',
@@ -25,7 +19,6 @@ class FirestoreService {
         'activo': false,
         'caracteristicas': ['sensores', 'reportes'],
         'meta': {'version': '0.9', 'region': 'costa', 'prioridad': 'alta'},
-        'creado': FieldValue.serverTimestamp(),
       },
       {
         'nombre': 'Equipo Atlas',
@@ -33,17 +26,20 @@ class FirestoreService {
         'activo': true,
         'caracteristicas': ['deploy', 'monitoreo'],
         'meta': {'version': '1.2', 'region': 'alta'},
-        'creado': FieldValue.serverTimestamp(),
       },
     ];
 
-    for (final sample in samples) {
-      final doc = collection.doc();
-      batch.set(doc, sample);
+    final res = await http.post(
+      Uri.parse('$_baseUrl/firebase/atlas_samples/batch'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'docs': samples}),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      return 'Documentos guardados: ${data['insertados']}';
+    } else {
+      throw Exception('Error ${res.statusCode}: ${res.body}');
     }
-
-    await batch.commit();
-
-    return 'Documentos guardados';
   }
 }
