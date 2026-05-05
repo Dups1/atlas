@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import 'Pantallas/search_screen.dart';
+import 'Pantallas/pantalla_explorar.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const Aplicacion());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class Aplicacion extends StatelessWidget {
+  const Aplicacion({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: SearchScreen(),
+      home: PantallaExplorar(),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'laboratorio_screen.dart';
+import 'pantalla_laboratorio.dart';
 
-class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+class PantallaExplorar extends StatefulWidget {
+  const PantallaExplorar({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  State<PantallaExplorar> createState() => _PantallaExplorarState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _PantallaExplorarState extends State<PantallaExplorar> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, dynamic>> _locations = const [
     {
@@ -76,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
           subtitle: const Text('Datos personales y perfil'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CuentaView()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaCuenta()));
           },
         ),
         ListTile(
@@ -85,7 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
           subtitle: const Text('Tema y permisos'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConfiguracionesView()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaConfiguraciones()));
           },
         ),
         ListTile(
@@ -94,7 +94,7 @@ class _SearchScreenState extends State<SearchScreen> {
           subtitle: const Text('Redes sociales y versión'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AcercaView()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaAcerca()));
           },
         ),
             ListTile(
@@ -149,7 +149,7 @@ class _SearchScreenState extends State<SearchScreen> {
             icon: const Icon(Icons.science),
             tooltip: 'Laboratorio',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LaboratorioScreen()),
+              MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
             ),
           ),
           IconButton(
@@ -244,8 +244,8 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
-class CuentaView extends StatelessWidget {
-  const CuentaView({super.key});
+class VistaCuenta extends StatelessWidget {
+  const VistaCuenta({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -270,8 +270,8 @@ class CuentaView extends StatelessWidget {
   }
 }
 
-class ConfiguracionesView extends StatelessWidget {
-  const ConfiguracionesView({super.key});
+class VistaConfiguraciones extends StatelessWidget {
+  const VistaConfiguraciones({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -300,8 +300,8 @@ class ConfiguracionesView extends StatelessWidget {
   }
 }
 
-class AcercaView extends StatelessWidget {
-  const AcercaView({super.key});
+class VistaAcerca extends StatelessWidget {
+  const VistaAcerca({super.key});
 
   @override
   Widget build(BuildContext context) {

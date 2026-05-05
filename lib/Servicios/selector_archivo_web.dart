@@ -7,10 +7,10 @@ import 'dart:html' as html;
 
 import 'package:flutter/foundation.dart';
 
-import 'file_selector.dart';
+import 'selector_archivo.dart';
 
-Future<SelectedFile?> pickImageFileImpl() {
-  final completer = Completer<SelectedFile?>();
+Future<ArchivoSeleccionado?> pickImageFileImpl() {
+  final completer = Completer<ArchivoSeleccionado?>();
 
   final input = html.FileUploadInputElement();
   input.accept = 'image/*';
@@ -40,7 +40,7 @@ Future<SelectedFile?> pickImageFileImpl() {
       final data = result is ByteBuffer ? Uint8List.view(result) : (result as Uint8List);
       final mime = file.type.isNotEmpty ? file.type : 'image/jpeg';
       dispose();
-      completer.complete(SelectedFile(name: file.name, bytes: data, mimeType: mime));
+      completer.complete(ArchivoSeleccionado(name: file.name, bytes: data, mimeType: mime));
     });
     reader.readAsArrayBuffer(file);
   });

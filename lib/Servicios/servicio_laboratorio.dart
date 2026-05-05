@@ -6,14 +6,14 @@ import 'package:http_parser/http_parser.dart';
 
 const _defaultBackendUrl = 'https://backend-atlas-gwxq.onrender.com';
 
-class LaboratorioEntry {
+class EntradaLaboratorio {
   final String id;
   final String key;
   final String url;
   final String? originalName;
   final DateTime? createdAt;
 
-  const LaboratorioEntry({
+  const EntradaLaboratorio({
     required this.id,
     required this.key,
     required this.url,
@@ -21,14 +21,14 @@ class LaboratorioEntry {
     this.createdAt,
   });
 
-  factory LaboratorioEntry.fromJson(Map<String, dynamic> json) {
+  factory EntradaLaboratorio.fromJson(Map<String, dynamic> json) {
     final createdAtRaw = json['createdAt'];
     DateTime? createdAt;
     if (createdAtRaw is String) {
       createdAt = DateTime.tryParse(createdAtRaw);
     }
 
-    return LaboratorioEntry(
+    return EntradaLaboratorio(
       id: json['id'] as String,
       key: json['key'] as String,
       url: json['url'] as String,
@@ -38,22 +38,22 @@ class LaboratorioEntry {
   }
 }
 
-class LaboratorioService {
+class ServicioLaboratorio {
   final String baseUrl;
 
-  LaboratorioService({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBackendUrl;
+  ServicioLaboratorio({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBackendUrl;
 
-  Future<List<LaboratorioEntry>> fetchUploads() async {
+  Future<List<EntradaLaboratorio>> fetchUploads() async {
     final response = await http.get(Uri.parse('$baseUrl/firebase/laboratorio'));
 
     if (response.statusCode != 200) {
       throw Exception('Error ${response.statusCode}: ${response.body}');
     }
 
-    debugPrint('LaboratorioService: /firebase/laboratorio -> ${response.body}');
+    debugPrint('ServicioLaboratorio: /firebase/laboratorio -> ${response.body}');
     final data = jsonDecode(response.body) as List<dynamic>;
     return data
-        .map((raw) => LaboratorioEntry.fromJson(raw as Map<String, dynamic>))
+        .map((raw) => EntradaLaboratorio.fromJson(raw as Map<String, dynamic>))
         .toList();
   }
 

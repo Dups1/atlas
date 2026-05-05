@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/file_selector.dart';
-import '../Servicios/laboratorio_service.dart';
+import '../Servicios/selector_archivo.dart';
+import '../Servicios/servicio_laboratorio.dart';
 
-class LaboratorioScreen extends StatefulWidget {
-  const LaboratorioScreen({super.key});
+class PantallaLaboratorio extends StatefulWidget {
+  const PantallaLaboratorio({super.key});
 
   @override
-  State<LaboratorioScreen> createState() => _LaboratorioScreenState();
+  State<PantallaLaboratorio> createState() => _PantallaLaboratorioState();
 }
 
-class _LaboratorioScreenState extends State<LaboratorioScreen> {
-  final LaboratorioService _service = LaboratorioService();
-  Future<List<LaboratorioEntry>>? _future;
+class _PantallaLaboratorioState extends State<PantallaLaboratorio> {
+  final ServicioLaboratorio _service = ServicioLaboratorio();
+  Future<List<EntradaLaboratorio>>? _future;
   bool _isUploading = false;
   bool _checkingStatus = false;
 
@@ -53,7 +53,7 @@ class _LaboratorioScreenState extends State<LaboratorioScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<LaboratorioEntry>>(
+      body: FutureBuilder<List<EntradaLaboratorio>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

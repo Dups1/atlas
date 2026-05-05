@@ -1,9 +1,9 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
 
-import 'file_selector.dart';
+import 'selector_archivo.dart';
 
-Future<SelectedFile?> pickImageFileImpl() async {
+Future<ArchivoSeleccionado?> pickImageFileImpl() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.image,
     withData: true,
@@ -12,5 +12,5 @@ Future<SelectedFile?> pickImageFileImpl() async {
   if (file == null || file.bytes == null) return null;
 
   final mime = lookupMimeType(file.name) ?? 'image/jpeg';
-  return SelectedFile(name: file.name, bytes: file.bytes!, mimeType: mime);
+  return ArchivoSeleccionado(name: file.name, bytes: file.bytes!, mimeType: mime);
 }
