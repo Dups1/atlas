@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'laboratorio_screen.dart';
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -143,6 +145,13 @@ class _SearchScreenState extends State<SearchScreen> {
         centerTitle: true,
         backgroundColor: Colors.black,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.science),
+            tooltip: 'Laboratorio',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LaboratorioScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
