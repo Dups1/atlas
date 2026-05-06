@@ -4,7 +4,7 @@ import 'package:mime/mime.dart';
 import 'selector_archivo.dart';
 
 Future<ArchivoSeleccionado?> pickImageFileImpl() async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     type: FileType.image,
     withData: true,
   );
