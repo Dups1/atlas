@@ -16,6 +16,7 @@ dependencies:
   mime: ^2.0.0
   shared_preferences: ^2.2.0
   shared_preferences_web: ^2.2.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

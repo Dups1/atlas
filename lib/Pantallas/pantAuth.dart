@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/auth_service.dart';
-import '../Servicios/servicio_laboratorio.dart';
-import 'pantalla_cliente.dart';
-import 'pantalla_trabajador.dart';
+import '../Servicios/authService.dart';
+import '../Servicios/servicioCategorias.dart';
+import 'pantCliente.dart';
+import 'pantTrabajador.dart';
 
 class PantallaAuth extends StatefulWidget {
   const PantallaAuth({super.key});
@@ -22,11 +22,11 @@ class _PantallaAuthState extends State<PantallaAuth> {
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
 
-  final ServicioLaboratorio _laboratorioService = ServicioLaboratorio();
+  final ServicioCategorias _categoriasService = ServicioCategorias();
   Future<List<Categoria>>? _categoriasFuture;
   Categoria? _categoriaSeleccionada;
   String? _subcategoriaSeleccionada;
-  late final AuthService _authService;
+  late final AutenticacionService _authService;
 
   void _continuar() {
     _handleAuth();
@@ -89,8 +89,8 @@ class _PantallaAuthState extends State<PantallaAuth> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(laboratorioService: _laboratorioService);
-    _categoriasFuture = _laboratorioService.fetchCategorias();
+    _authService = AutenticacionService();
+    _categoriasFuture = _categoriasService.fetchCategorias();
     _restaurarSesion();
   }
 
@@ -100,7 +100,7 @@ class _PantallaAuthState extends State<PantallaAuth> {
       if (rol == null) return;
       _navegarSegunRol(rol);
     } catch (_) {
-      await _laboratorioService.limpiarToken();
+      await _authService.limpiarToken();
     }
   }
 

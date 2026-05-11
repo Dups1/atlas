@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'servicio_laboratorio.dart';
+import 'autenticacionStorage.dart';
 
 class SesionService {
-  final ServicioLaboratorio _laboratorioService = ServicioLaboratorio();
+  final AutenticacionStorage _storage = AutenticacionStorage();
 
   Future<bool> confirmarCerrarSesion(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -28,5 +28,5 @@ class SesionService {
     return confirmed;
   }
 
-  Future<void> limpiarSesion() => _laboratorioService.limpiarToken();
+  Future<void> limpiarSesion() => _storage.limpiarToken();
 }

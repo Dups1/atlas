@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/perfil_service.dart';
-import '../Servicios/servicio_laboratorio.dart';
-import '../Servicios/sesion_service.dart';
-import 'pantalla_ajustes.dart';
-import 'pantalla_auth.dart';
-import 'pantalla_laboratorio.dart';
-import 'pantalla_perfil_cliente.dart';
-import 'pantalla_trabajador.dart';
+import '../Servicios/autenticacionStorage.dart';
+import '../Servicios/servicioPerfilApi.dart';
+import '../Servicios/servicioTrabajadores.dart';
+import '../Servicios/sesionService.dart';
+import 'pantAjustes.dart';
+import 'pantAuth.dart';
+import 'pantLaboratorio.dart';
+import 'pantMensajesCliente.dart';
+import 'pantPerfilCliente.dart';
+import 'pantPerfilTrabPublico.dart';
+import 'pantReservaCliente.dart';
+import 'pantTrabajador.dart';
 
 class PantallaCliente extends StatefulWidget {
   const PantallaCliente({super.key});
@@ -20,21 +24,19 @@ class _PantallaClienteState extends State<PantallaCliente> {
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   final SesionService _sesionService = SesionService();
-  final PerfilService _perfilService = PerfilService();
-  final ServicioLaboratorio _labService = ServicioLaboratorio();
+  final ServicioTrabajadores _trabajadoresService = ServicioTrabajadores();
+  final AutenticacionStorage _storage = AutenticacionStorage();
+  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
   List<Map<String, dynamic>> _all = [];
   List<Map<String, dynamic>> _filtered = [];
   int _selectedIndex = 0;
 
-  static const _fallbackImage =
-      'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=200&q=60';
-
   @override
   void initState() {
     super.initState();
-    _trabajadoresFuture = _perfilService.fetchTrabajadores();
+    _trabajadoresFuture = _trabajadoresService.fetchTrabajadores();
   }
 
   @override
@@ -105,7 +107,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
     final categoria = w['categoria'] as String? ?? '';
     final subcategoria = w['subcategoria'] as String? ?? '';
     final calificacion = double.tryParse((w['calificacion'] ?? '4.0').toString()) ?? 4.0;
-    final foto = (w['foto'] as String?)?.isNotEmpty == true ? w['foto'] as String : _fallbackImage;
+    final foto = (w['foto'] as String?)?.trim() ?? '';
 
     return Card(
       elevation: 2,
@@ -115,7 +117,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => WorkerProfileView(initialData: w, readOnly: true),
+            builder: (_) => PantallaPerfilTrabajadorPublico(data: w),
           ),
         ),
         child: Padding(
@@ -124,7 +126,8 @@ class _PantallaClienteState extends State<PantallaCliente> {
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundImage: NetworkImage(foto),
+                backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
+                child: foto.isEmpty ? const Icon(Icons.person_outline) : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -153,7 +156,17 @@ class _PantallaClienteState extends State<PantallaCliente> {
               ),
               IconButton(
                 icon: const Icon(Icons.message_outlined),
-                onPressed: () {},
+                onPressed: () {
+                  final nombre = w['nombre'] as String? ?? '';
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PantallaMensajesCliente(
+                        initialTabIndex: 0,
+                        initialSearch: nombre,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -184,7 +197,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
+          preferredSize: const Size.fromHeight(76),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
@@ -273,6 +286,8 @@ class _PantallaClienteState extends State<PantallaCliente> {
     return BottomAppBar(
       color: Colors.white,
       elevation: 6,
+      height: 88,
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
@@ -287,6 +302,16 @@ class _PantallaClienteState extends State<PantallaCliente> {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () {
                     setState(() => _selectedIndex = index);
+                    if (index == 1) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PantallaMensajesCliente()),
+                      );
+                    }
+                    if (index == 2) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PantallaReservaCliente()),
+                      );
+                    }
                     if (index == 3) {
                       _openPerfilActual();
                     }
@@ -316,7 +341,9 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
   Future<void> _openPerfilActual() async {
     try {
-      final perfil = await _labService.obtenerPerfilActivo();
+      final token = await _storage.recuperarToken();
+      if (token == null) throw Exception('Sesion no iniciada');
+      final perfil = await _perfilApi.fetchPerfil(token);
       final rol = (perfil['rol'] ?? '').toString().toLowerCase();
       if (!mounted) return;
 

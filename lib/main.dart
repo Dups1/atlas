@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'shared_preferences_web_stub.dart'
+import 'preferencias/stubWebPreferencias.dart'
     if (dart.library.html) 'package:shared_preferences_web/shared_preferences_web.dart';
 
-import 'Pantallas/pantalla_auth.dart';
+import 'Pantallas/pantAuth.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +18,14 @@ class Aplicacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: PantallaAuth(),
+    return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        bottomAppBarTheme: const BottomAppBarThemeData(
+          padding: EdgeInsets.zero,
+        ),
+      ),
+      home: const PantallaAuth(),
       debugShowCheckedModeBanner: false,
     );
   }

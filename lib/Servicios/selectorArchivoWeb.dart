@@ -7,7 +7,7 @@ import 'dart:html' as html;
 
 import 'package:flutter/foundation.dart';
 
-import 'selector_archivo.dart';
+import 'selectorArchivo.dart';
 
 Future<ArchivoSeleccionado?> pickImageFileImpl() {
   final completer = Completer<ArchivoSeleccionado?>();

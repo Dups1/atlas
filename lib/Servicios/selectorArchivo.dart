@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'selector_archivo_io.dart'
-    if (dart.library.html) 'selector_archivo_web.dart';
+import 'selectorArchivoIo.dart'
+    if (dart.library.html) 'selectorArchivoWeb.dart';
 
 class ArchivoSeleccionado {
   final String name;
