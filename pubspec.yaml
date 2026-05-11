@@ -11,6 +11,12 @@ dependencies:
     sdk: flutter
 
   http: ^1.0.0  
+  file_picker: ^11.0.0
+  http_parser: ^4.0.0
+  mime: ^2.0.0
+  shared_preferences: ^2.2.0
+  shared_preferences_web: ^2.2.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
