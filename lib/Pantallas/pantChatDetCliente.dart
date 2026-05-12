@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/mensajesMockService.dart';
+import '../Servicios/autenticacionStorage.dart';
+import '../Servicios/servicioMensajes.dart';
+import '../Servicios/servicioPerfilApi.dart';
 
 class PantallaChatDetalleCliente extends StatefulWidget {
-  final ConversacionMock conversation;
+  final String conversationId;
+  final String tituloAppBar;
 
   const PantallaChatDetalleCliente({
     super.key,
-    required this.conversation,
+    required this.conversationId,
+    required this.tituloAppBar,
   });
 
   @override
@@ -15,15 +19,58 @@ class PantallaChatDetalleCliente extends StatefulWidget {
 }
 
 class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente> {
-  final MensajesMockService _service = MensajesMockService.instance;
+  final ServicioMensajes _mensajes = ServicioMensajes();
+  final AutenticacionStorage _storage = AutenticacionStorage();
+  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
   final TextEditingController _inputController = TextEditingController();
 
-  List<MensajeMock> get _messages => _service.obtenerMensajes(widget.conversation.id);
+  String? _miUid;
+  String? _error;
+  bool _enviando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
 
   @override
   void dispose() {
     _inputController.dispose();
     super.dispose();
+  }
+
+  Future<void> _bootstrap() async {
+    setState(() => _error = null);
+    try {
+      final token = await _storage.recuperarToken();
+      if (token == null) throw Exception('Sesion no iniciada');
+      final perfil = await _perfilApi.fetchPerfil(token);
+      final uid = perfil['id'] as String? ?? perfil['uid'] as String?;
+      if (uid == null || uid.isEmpty) throw Exception('UID no disponible');
+      setState(() {
+        _miUid = uid;
+        _error = null;
+      });
+    } catch (e) {
+      setState(() => _error = '$e');
+    }
+  }
+
+  Future<void> _send() async {
+    final text = _inputController.text.trim();
+    if (text.isEmpty || _enviando) return;
+    setState(() => _enviando = true);
+    try {
+      await _mensajes.enviarMensaje(widget.conversationId, text);
+      _inputController.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 
   @override
@@ -34,7 +81,7 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.conversation.clienteNombre),
+            Text(widget.tituloAppBar),
             Text(
               'Trabajador',
               style: Theme.of(context).textTheme.bodySmall,
@@ -50,39 +97,7 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
         children: [
           _quickReplies(),
           const Divider(height: 1),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final mine = msg.senderId != MensajesMockService.trabajadorId;
-                return Align(
-                  alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    constraints: const BoxConstraints(maxWidth: 280),
-                    decoration: BoxDecoration(
-                      color: mine ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(msg.text),
-                        const SizedBox(height: 4),
-                        Text(
-                          _hhmm(msg.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _cuerpoLista()),
           SafeArea(
             top: false,
             child: Padding(
@@ -92,6 +107,7 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
                   Expanded(
                     child: TextField(
                       controller: _inputController,
+                      enabled: !_enviando && _miUid != null,
                       decoration: const InputDecoration(
                         hintText: 'Escribe un mensaje',
                         border: OutlineInputBorder(),
@@ -101,8 +117,14 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    onPressed: _send,
-                    icon: const Icon(Icons.send),
+                    onPressed: _enviando ? null : _send,
+                    icon: _enviando
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send),
                   ),
                 ],
               ),
@@ -110,6 +132,85 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _cuerpoLista() {
+    if (_error != null && _miUid == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _bootstrap, child: const Text('Reintentar')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_miUid == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return StreamBuilder<List<MensajeRemoto>>(
+      stream: _mensajes.streamMensajes(widget.conversationId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${snapshot.error}', textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(onPressed: _bootstrap, child: const Text('Reintentar')),
+                ],
+              ),
+            ),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final lista = snapshot.data ?? const <MensajeRemoto>[];
+        if (lista.isEmpty) {
+          return const Center(child: Text('Sin mensajes aun'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: lista.length,
+          itemBuilder: (context, index) {
+            final msg = lista[index];
+            final mine = msg.senderUid == _miUid;
+            return Align(
+              alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                constraints: const BoxConstraints(maxWidth: 280),
+                decoration: BoxDecoration(
+                  color: mine ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(msg.texto),
+                    const SizedBox(height: 4),
+                    Text(
+                      _hhmm(msg.createdAt),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -122,27 +223,17 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
         scrollDirection: Axis.horizontal,
         itemBuilder: (_, i) => ActionChip(
           label: Text(replies[i]),
-          onPressed: () {
-            _inputController.text = replies[i];
-            _send();
-          },
+          onPressed: _enviando
+              ? null
+              : () {
+                  _inputController.text = replies[i];
+                  _send();
+                },
         ),
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemCount: replies.length,
       ),
     );
-  }
-
-  void _send() {
-    final text = _inputController.text.trim();
-    if (text.isEmpty) return;
-    _service.sendMessage(
-      conversationId: widget.conversation.id,
-      senderId: 'cliente',
-      text: text,
-    );
-    _inputController.clear();
-    setState(() {});
   }
 
   String _hhmm(DateTime d) {

@@ -9,6 +9,7 @@ import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantCalendarioTrabajador.dart';
 import 'pantLaboratorio.dart';
+import 'navegacionChat.dart';
 import 'pantMensajesTrabajador.dart';
 import 'pantPortafolioTrabajador.dart';
 
@@ -822,11 +823,11 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _itemSolicitud('Pedro M', 'Fuga de agua en baño'),
+                  _itemSolicitud('Pedro M', 'Fuga de agua en baño', clienteUid: null),
                   const Divider(height: 20),
-                  _itemSolicitud('Laura G', 'Instalacion de luminaria en sala'),
+                  _itemSolicitud('Laura G', 'Instalacion de luminaria en sala', clienteUid: null),
                   const Divider(height: 20),
-                  _itemSolicitud('Carlos R', 'Revision de corto en cocina'),
+                  _itemSolicitud('Carlos R', 'Revision de corto en cocina', clienteUid: null),
                 ],
               ),
             ),
@@ -883,7 +884,7 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
     );
   }
 
-  Widget _itemSolicitud(String cliente, String problema) {
+  Widget _itemSolicitud(String cliente, String problema, {String? clienteUid}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -902,6 +903,15 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
                   onPressed: () {
+                    final uid = clienteUid?.trim();
+                    if (uid != null && uid.isNotEmpty) {
+                      abrirChatTrabajadorConCliente(
+                        context,
+                        clienteUid: uid,
+                        tituloMostrar: cliente,
+                      );
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => PantallaMensajesTrabajador(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'autenticacionStorage.dart';
+import 'servicioFirebaseSync.dart';
 
 class SesionService {
   final AutenticacionStorage _storage = AutenticacionStorage();
@@ -28,5 +29,8 @@ class SesionService {
     return confirmed;
   }
 
-  Future<void> limpiarSesion() => _storage.limpiarToken();
+  Future<void> limpiarSesion() async {
+    await ServicioFirebaseSync.cerrarSesionFirebase();
+    await _storage.limpiarToken();
+  }
 }

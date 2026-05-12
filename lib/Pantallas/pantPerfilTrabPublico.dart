@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pantMensajesCliente.dart';
+import 'navegacionChat.dart';
 import 'pantReservaCliente.dart';
 
 class PantallaPerfilTrabajadorPublico extends StatelessWidget {
@@ -123,13 +123,17 @@ class PantallaPerfilTrabajadorPublico extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PantallaMensajesCliente(
-                            initialTabIndex: 0,
-                            initialSearch: nombre,
-                          ),
-                        ),
+                      final uid = uidDesdeMapaUsuario(data);
+                      if (uid.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Este perfil no tiene id de usuario')),
+                        );
+                        return;
+                      }
+                      abrirChatClienteConTrabajador(
+                        context,
+                        trabajadorUid: uid,
+                        tituloMostrar: nombre,
                       );
                     },
                     icon: const Icon(Icons.message_outlined),

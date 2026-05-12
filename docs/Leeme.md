@@ -47,3 +47,18 @@ Pantalla **Laboratorio**: un `Scaffold` sencillo con titulo y un texto centrado.
 ## `lib/Servicios/servicioLaboratorio.dart`
 
 Archivo **reservado** para futuras pruebas ligadas a la pantalla Laboratorio. Hoy **no contiene clases ni funciones**: solo comentarios que aclaran que la logica de red y HTTP vive en otros servicios (`servicioAlmacenamiento.dart`, `servicioAuth.dart`, etc.). Evita que el nombre “laboratorio” se confunda con un servicio HTTP real.
+
+---
+
+## API mensajes (backend `backend-atlas/prueba.js`)
+
+Todas las rutas llevan cabecera `Authorization: Bearer <idToken>`.
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| POST | `/mensajes/conversaciones` | Body JSON `{ "otroUid": "<uid del otro>" }`. Crea o actualiza la conversacion; responde `{ conversationId }` (mismo id para cliente y trabajador: UIDs ordenados unidos por `_`). |
+| GET | `/mensajes/conversaciones` | Lista conversaciones donde participas (orden por `updatedAt` descendente). |
+| GET | `/mensajes/conversaciones/:conversationId/mensajes` | Query opcional: `limit` (default 50), `antesDe` (id de mensaje para paginar con `startAfter`). |
+| POST | `/mensajes/conversaciones/:conversationId` | Body JSON `{ "texto": "..." }`. Guarda el mensaje en la subcoleccion `mensajes` y actualiza la conversacion. |
+
+Firestore: coleccion `conversaciones` y subcoleccion `mensajes`. Para `GET /mensajes/conversaciones` hace falta un indice compuesto en la consola de Firebase: coleccion `conversaciones`, campo `participantes` (Arrays / contiene) + `updatedAt` descendente, alcance coleccion.

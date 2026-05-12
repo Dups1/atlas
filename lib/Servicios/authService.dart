@@ -1,5 +1,6 @@
 import 'autenticacionStorage.dart';
 import 'servicioAuth.dart';
+import 'servicioFirebaseSync.dart';
 import 'servicioPerfilApi.dart';
 
 class AutenticacionService {
@@ -15,7 +16,10 @@ class AutenticacionService {
         _perfilApi = perfilApi ?? ServicioPerfilApi(),
         _storage = storage ?? AutenticacionStorage();
 
-  Future<void> limpiarToken() => _storage.limpiarToken();
+  Future<void> limpiarToken() async {
+    await ServicioFirebaseSync.cerrarSesionFirebase();
+    await _storage.limpiarToken();
+  }
 
   Future<String> login({
     required String email,
@@ -28,6 +32,9 @@ class AutenticacionService {
     final idToken = data['idToken'] as String?;
     if (idToken == null) throw Exception('Token no recibido');
     await _storage.guardarToken(idToken);
+    try {
+      await ServicioFirebaseSync.sincronizarConTokenGuardado();
+    } catch (_) {}
     final perfil = await _perfilApi.fetchPerfil(idToken);
     return perfil['rol'] as String? ?? 'cliente';
   }
@@ -56,6 +63,9 @@ class AutenticacionService {
   Future<String?> restoreSession() async {
     final token = await _storage.recuperarToken();
     if (token == null) return null;
+    try {
+      await ServicioFirebaseSync.sincronizarConTokenGuardado();
+    } catch (_) {}
     final perfil = await _perfilApi.fetchPerfil(token);
     return perfil['rol'] as String? ?? 'cliente';
   }

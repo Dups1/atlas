@@ -7,6 +7,7 @@ import '../Servicios/sesionService.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantLaboratorio.dart';
+import 'navegacionChat.dart';
 import 'pantMensajesCliente.dart';
 import 'pantPerfilCliente.dart';
 import 'pantPerfilTrabPublico.dart';
@@ -157,14 +158,18 @@ class _PantallaClienteState extends State<PantallaCliente> {
               IconButton(
                 icon: const Icon(Icons.message_outlined),
                 onPressed: () {
-                  final nombre = w['nombre'] as String? ?? '';
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaMensajesCliente(
-                        initialTabIndex: 0,
-                        initialSearch: nombre,
-                      ),
-                    ),
+                  final nombre = w['nombre'] as String? ?? 'Trabajador';
+                  final uid = uidDesdeMapaUsuario(w);
+                  if (uid.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Este perfil no tiene id de usuario')),
+                    );
+                    return;
+                  }
+                  abrirChatClienteConTrabajador(
+                    context,
+                    trabajadorUid: uid,
+                    tituloMostrar: nombre,
                   );
                 },
               ),
