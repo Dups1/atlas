@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/servicioLlamadas.dart';
-import '../Servicios/servicioPerfilApi.dart';
-import '../Servicios/servicioTrabajadores.dart';
-import '../Servicios/sesionService.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
+import '../Servicios/trabajadores/servicioTrabajadores.dart';
+import '../Servicios/autenticacion/sesionService.dart';
 import '../widgets/alcanceServicioLlamadas.dart';
 import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
@@ -19,21 +19,21 @@ import 'pantPerfilTrabPublico.dart';
 import 'pantReservaCliente.dart';
 import 'pantTrabajador.dart';
 
-class PantallaCliente extends StatefulWidget {
-  const PantallaCliente({super.key});
+class pantallaCliente extends StatefulWidget {
+  const pantallaCliente({super.key});
 
   @override
-  State<PantallaCliente> createState() => _PantallaClienteState();
+  State<pantallaCliente> createState() => _pantallaClienteState();
 }
 
-class _PantallaClienteState extends State<PantallaCliente> {
+class _pantallaClienteState extends State<pantallaCliente> {
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  final SesionService _sesionService = SesionService();
-  final ServicioTrabajadores _trabajadoresService = ServicioTrabajadores();
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
-  late final ServicioLlamadas _servicioLlamadas;
+  final sesionService _sesionService = sesionService();
+  final servicioTrabajadores _trabajadoresService = servicioTrabajadores();
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
+  late final servicioLlamadas _servicioLlamadas;
   bool _servicioLlamadasInicializada = false;
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
@@ -86,7 +86,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const PantallaAuth()),
+      MaterialPageRoute(builder: (_) => const pantallaAuth()),
       (route) => false,
     );
   }
@@ -104,7 +104,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
           subtitle: const Text('Tema y permisos'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaConfiguraciones()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaConfiguraciones()));
           },
         ),
         ListTile(
@@ -113,7 +113,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
           subtitle: const Text('Redes sociales y version'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaAcerca()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
           },
         ),
         ListTile(
@@ -140,7 +140,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => PantallaPerfilTrabajadorPublico(data: w)),
+          MaterialPageRoute(builder: (_) => pantallaPerfilTrabajadorPublico(data: w)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -215,7 +215,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
                 icon: const Icon(Icons.science),
                 tooltip: 'Laboratorio',
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
+                  MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
                 ),
               ),
               IconButton(
@@ -332,12 +332,12 @@ class _PantallaClienteState extends State<PantallaCliente> {
                     setState(() => _selectedIndex = index);
                     if (index == 1) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaMensajesCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaMensajesCliente()),
                       );
                     }
                     if (index == 2) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaReservaCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaReservaCliente()),
                       );
                     }
                     if (index == 3) {
@@ -377,11 +377,11 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
       if (rol == 'trabajador') {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WorkerProfileView()),
+          MaterialPageRoute(builder: (_) => const workerProfileView()),
         );
       } else {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const PerfilClienteView()),
+          MaterialPageRoute(builder: (_) => const perfilClienteView()),
         );
       }
     } catch (e) {

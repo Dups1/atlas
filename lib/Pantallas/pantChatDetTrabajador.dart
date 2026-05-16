@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/servicioMensajes.dart';
-import '../Servicios/servicioPerfilApi.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/mensajes/servicioMensajes.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
 import '../widgets/alcanceServicioLlamadas.dart';
 import 'pantLlamadaEmisor.dart';
 
-class PantallaChatDetalleTrabajador extends StatefulWidget {
+class pantallaChatDetalleTrabajador extends StatefulWidget {
   final String conversationId;
   final String tituloAppBar;
 
-  const PantallaChatDetalleTrabajador({
+  const pantallaChatDetalleTrabajador({
     super.key,
     required this.conversationId,
     required this.tituloAppBar,
   });
 
   @override
-  State<PantallaChatDetalleTrabajador> createState() => _PantallaChatDetalleTrabajadorState();
+  State<pantallaChatDetalleTrabajador> createState() => _pantallaChatDetalleTrabajadorState();
 }
 
-class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTrabajador> {
-  final ServicioMensajes _mensajes = ServicioMensajes();
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
+class _pantallaChatDetalleTrabajadorState extends State<pantallaChatDetalleTrabajador> {
+  final servicioMensajes _mensajes = servicioMensajes();
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
   final TextEditingController _inputController = TextEditingController();
 
   String? _miUid;
@@ -66,7 +66,7 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
       );
       return;
     }
-    final otro = ServicioMensajes.otroUidDesdeConversationId(widget.conversationId, _miUid!);
+    final otro = servicioMensajes.otroUidDesdeConversationId(widget.conversationId, _miUid!);
     if (otro == null || otro.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo obtener el UID del contacto')),
@@ -76,7 +76,7 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
     final servicio = alcanceServicioLlamadas.of(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PantallaLlamadaEmisor(
+        builder: (_) => pantallaLlamadaEmisor(
           tituloAppBar: 'Llamada',
           idReceptorInicial: otro,
           nombreRemotoInicial: widget.tituloAppBar,
@@ -183,7 +183,7 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
     if (_miUid == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return StreamBuilder<List<MensajeRemoto>>(
+    return StreamBuilder<List<mensajeRemoto>>(
       stream: _mensajes.streamMensajes(widget.conversationId),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -204,7 +204,7 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final lista = snapshot.data ?? const <MensajeRemoto>[];
+        final lista = snapshot.data ?? const <mensajeRemoto>[];
         if (lista.isEmpty) {
           return const Center(child: Text('Sin mensajes aun'));
         }

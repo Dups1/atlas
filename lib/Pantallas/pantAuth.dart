@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/authService.dart';
-import '../Servicios/servicioCategorias.dart';
+import '../Servicios/autenticacion/authService.dart';
+import '../Servicios/categorias/servicioCategorias.dart';
 import 'pantCliente.dart';
 import 'pantTrabajador.dart';
 
-class PantallaAuth extends StatefulWidget {
-  const PantallaAuth({super.key});
+class pantallaAuth extends StatefulWidget {
+  const pantallaAuth({super.key});
 
   @override
-  State<PantallaAuth> createState() => _PantallaAuthState();
+  State<pantallaAuth> createState() => _pantallaAuthState();
 }
 
-class _PantallaAuthState extends State<PantallaAuth> {
+class _pantallaAuthState extends State<pantallaAuth> {
   bool _modoLogin = true;
   String _rolSeleccionado = 'cliente';
   bool _isSubmitting = false;
@@ -22,11 +22,11 @@ class _PantallaAuthState extends State<PantallaAuth> {
   final _nombreCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
 
-  final ServicioCategorias _categoriasService = ServicioCategorias();
-  Future<List<Categoria>>? _categoriasFuture;
-  Categoria? _categoriaSeleccionada;
+  final servicioCategorias _categoriasService = servicioCategorias();
+  Future<List<categoria>>? _categoriasFuture;
+  categoria? _categoriaSeleccionada;
   String? _subcategoriaSeleccionada;
-  late final AutenticacionService _authService;
+  late final autenticacionService _authService;
 
   void _continuar() {
     _handleAuth();
@@ -35,11 +35,11 @@ class _PantallaAuthState extends State<PantallaAuth> {
   void _navegarSegunRol(String rol) {
     if (rol == 'trabajador') {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const PantallaTrabajador()),
+        MaterialPageRoute(builder: (_) => const pantallaTrabajador()),
       );
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const PantallaCliente()),
+        MaterialPageRoute(builder: (_) => const pantallaCliente()),
       );
     }
   }
@@ -89,7 +89,7 @@ class _PantallaAuthState extends State<PantallaAuth> {
   @override
   void initState() {
     super.initState();
-    _authService = AutenticacionService();
+    _authService = autenticacionService();
     _categoriasFuture = _categoriasService.fetchCategorias();
     _restaurarSesion();
   }
@@ -210,7 +210,7 @@ class _PantallaAuthState extends State<PantallaAuth> {
                 if (!_modoLogin) const SizedBox(height: 24),
 
                 if (mostrarCategorias)
-                  FutureBuilder<List<Categoria>>(
+                  FutureBuilder<List<categoria>>(
                     future: _categoriasFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -238,7 +238,7 @@ class _PantallaAuthState extends State<PantallaAuth> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          DropdownButtonFormField<Categoria>(
+                          DropdownButtonFormField<categoria>(
                             key: ValueKey(
                                 'categoria-${_categoriaSeleccionada?.id ?? ''}'),
                             initialValue: _categoriaSeleccionada,
@@ -249,15 +249,15 @@ class _PantallaAuthState extends State<PantallaAuth> {
                             ),
                             items: categorias
                                 .map(
-                                  (categoria) => DropdownMenuItem(
-                                    value: categoria,
-                                    child: Text('${categoria.emoji} ${categoria.nombre}'),
+                                  (categoriaItem) => DropdownMenuItem(
+                                    value: categoriaItem,
+                                    child: Text('${categoriaItem.emoji} ${categoriaItem.nombre}'),
                                   ),
                                 )
                                 .toList(),
-                            onChanged: (categoria) {
+                            onChanged: (categoriaSeleccionada) {
                               setState(() {
-                                _categoriaSeleccionada = categoria;
+                                _categoriaSeleccionada = categoriaSeleccionada;
                                 _subcategoriaSeleccionada = null;
                               });
                             },

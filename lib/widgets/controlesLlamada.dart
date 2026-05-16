@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../modelos/llamadaModelo.dart';
-import '../Servicios/servicioLlamadas.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
 
 /// Panel de estado Firestore + controles Agora (mute, altavoz, colgar). Compartido emisor / receptor en sesion.
 class panelSesionLlamadaAgora extends StatelessWidget {
   const panelSesionLlamadaAgora({super.key, required this.servicio});
 
-  final ServicioLlamadas servicio;
+  final servicioLlamadas servicio;
 
-  static LlamadaModelo? _modeloParaEstadoFirestore(LlamadaModelo? activa) {
+  static llamadaModelo? _modeloParaEstadoFirestore(llamadaModelo? activa) {
     final m = activa;
     if (m == null || m.estado == null) return null;
     return m;
@@ -68,7 +68,7 @@ class panelSesionLlamadaAgora extends StatelessWidget {
 
 /// Llamada saliente: UID, iniciar, estado y sesion. La entrante va en [PantallaLlamadaReceptor].
 class controlesLlamada extends StatelessWidget {
-  final ServicioLlamadas servicio;
+  final servicioLlamadas servicio;
   final VoidCallback onIniciarLlamada;
   final TextEditingController controladorIdReceptor;
   final bool ocultarCampoIdReceptor;
@@ -81,7 +81,7 @@ class controlesLlamada extends StatelessWidget {
     this.ocultarCampoIdReceptor = false,
   });
 
-  static LlamadaModelo? _modeloParaEstadoFirestore(LlamadaModelo? activa) {
+  static llamadaModelo? _modeloParaEstadoFirestore(llamadaModelo? activa) {
     final m = activa;
     if (m == null || m.estado == null) return null;
     return m;
@@ -119,7 +119,7 @@ class controlesLlamada extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             FilledButton.icon(
-              onPressed: ui.cargandoAccion || !ServicioLlamadas.soportaLlamadasVozNativo
+              onPressed: ui.cargandoAccion || !servicioLlamadas.soportaLlamadasVozNativo
                   ? null
                   : onIniciarLlamada,
               icon: ui.cargandoAccion
@@ -145,7 +145,7 @@ class controlesLlamada extends StatelessWidget {
 class indicadorEstadoFirestore extends StatelessWidget {
   const indicadorEstadoFirestore({super.key, required this.modelo});
 
-  final LlamadaModelo modelo;
+  final llamadaModelo modelo;
 
   static bool estadoActivo(EstadoLlamadaFirebase e) {
     return e == EstadoLlamadaFirebase.timbrando || e == EstadoLlamadaFirebase.aceptada;

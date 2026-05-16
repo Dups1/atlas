@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'navegacionChat.dart';
 import 'pantReservaCliente.dart';
 
-class PantallaPerfilTrabajadorPublico extends StatelessWidget {
+class pantallaPerfilTrabajadorPublico extends StatelessWidget {
   final Map<String, dynamic> data;
 
-  const PantallaPerfilTrabajadorPublico({
+  const pantallaPerfilTrabajadorPublico({
     super.key,
     required this.data,
   });
@@ -145,7 +145,7 @@ class PantallaPerfilTrabajadorPublico extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaReservaCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaReservaCliente()),
                       );
                     },
                     icon: const Icon(Icons.calendar_month_outlined),

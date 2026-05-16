@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/servicioMensajes.dart';
+import '../Servicios/mensajes/servicioMensajes.dart';
 import 'pantChatDetCliente.dart';
 import 'pantChatDetTrabajador.dart';
 
@@ -23,11 +23,11 @@ Future<void> abrirChatClienteConTrabajador(
     return;
   }
   try {
-    final cid = await ServicioMensajes().asegurarConversacion(otroUid: trabajadorUid);
+    final cid = await servicioMensajes().asegurarConversacion(otroUid: trabajadorUid);
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PantallaChatDetalleCliente(
+        builder: (_) => pantallaChatDetalleCliente(
           conversationId: cid,
           tituloAppBar: tituloMostrar,
         ),
@@ -54,11 +54,11 @@ Future<void> abrirChatTrabajadorConCliente(
     return;
   }
   try {
-    final cid = await ServicioMensajes().asegurarConversacion(otroUid: clienteUid);
+    final cid = await servicioMensajes().asegurarConversacion(otroUid: clienteUid);
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PantallaChatDetalleTrabajador(
+        builder: (_) => pantallaChatDetalleTrabajador(
           conversationId: cid,
           tituloAppBar: tituloMostrar,
         ),

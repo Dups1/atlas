@@ -1,13 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../Servicios/servicioLlamadas.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
 import '../modelos/estadoUiLlamada.dart';
 import '../widgets/controlesLlamada.dart';
 
 /// Pantalla solo para el **emisor**: llamada saliente y sesion. Sin UI de llamada entrante.
-class PantallaLlamadaEmisor extends StatefulWidget {
-  const PantallaLlamadaEmisor({
+class pantallaLlamadaEmisor extends StatefulWidget {
+  const pantallaLlamadaEmisor({
     super.key,
     required this.tituloAppBar,
     this.idReceptorInicial,
@@ -18,14 +18,14 @@ class PantallaLlamadaEmisor extends StatefulWidget {
   final String tituloAppBar;
   final String? idReceptorInicial;
   final String? nombreRemotoInicial;
-  final ServicioLlamadas? servicioCompartido;
+  final servicioLlamadas? servicioCompartido;
 
   @override
-  State<PantallaLlamadaEmisor> createState() => _PantallaLlamadaEmisorState();
+  State<pantallaLlamadaEmisor> createState() => _pantallaLlamadaEmisorState();
 }
 
-class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with SingleTickerProviderStateMixin {
-  late final ServicioLlamadas _servicio;
+class _pantallaLlamadaEmisorState extends State<pantallaLlamadaEmisor> with SingleTickerProviderStateMixin {
+  late final servicioLlamadas _servicio;
   late final bool _poseeServicio;
   final TextEditingController _controladorUidReceptor = TextEditingController();
   late final AnimationController _pulso;
@@ -39,7 +39,7 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
   void initState() {
     super.initState();
     _poseeServicio = widget.servicioCompartido == null;
-    _servicio = widget.servicioCompartido ?? ServicioLlamadas();
+    _servicio = widget.servicioCompartido ?? servicioLlamadas();
     _servicio.addListener(_repintar);
     _pulso = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
 
@@ -70,7 +70,7 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
     super.dispose();
   }
 
-  String _nombreInterlocutorEmisor(EstadoUiLlamada ui) {
+  String _nombreInterlocutorEmisor(estadoUiLlamada ui) {
     final activa = ui.llamadaActiva;
     if (activa != null) {
       final me = FirebaseAuth.instance.currentUser?.uid;
@@ -86,8 +86,8 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
     return 'Llamada de voz';
   }
 
-  String _leyendaConexionBreve(EstadoUiLlamada ui) {
-    if (!ServicioLlamadas.soportaLlamadasVozNativo) return 'Audio no disponible aqui';
+  String _leyendaConexionBreve(estadoUiLlamada ui) {
+    if (!servicioLlamadas.soportaLlamadasVozNativo) return 'Audio no disponible aqui';
     if (ui.textoError != null) return '';
     if (ui.enCanalAgora) return ui.remotoEnCanal ? 'En llamada' : 'Esperando a la otra persona';
     if (ui.cargandoAccion) return 'Conectando...';
@@ -122,7 +122,7 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          if (!ServicioLlamadas.soportaLlamadasVozNativo)
+          if (!servicioLlamadas.soportaLlamadasVozNativo)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -189,7 +189,7 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
 class _BarraEstadoLlamada extends StatelessWidget {
   const _BarraEstadoLlamada({required this.ui, required this.hablando});
 
-  final EstadoUiLlamada ui;
+  final estadoUiLlamada ui;
   final bool hablando;
 
   @override

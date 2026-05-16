@@ -2,24 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../Llamadas/servicioLlamadaReceptorNativo.dart';
-import '../Llamadas/servicioLlamadaReceptorNativoFabrica.dart';
-import '../Servicios/servicioLlamadas.dart';
+import '../Servicios/llamadas/receptorNativo/servicioLlamadaReceptorNativo.dart';
+import '../Servicios/llamadas/receptorNativo/servicioLlamadaReceptorNativoFabrica.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
 import '../modelos/estadoUiLlamada.dart';
 import '../modelos/llamadaModelo.dart';
 import '../widgets/controlesLlamada.dart';
 
 /// Pantalla solo para el **receptor**: timbre y, tras aceptar, sesion en la misma ruta.
-class PantallaLlamadaReceptor extends StatefulWidget {
-  const PantallaLlamadaReceptor({super.key, required this.servicio});
+class pantallaLlamadaReceptor extends StatefulWidget {
+  const pantallaLlamadaReceptor({super.key, required this.servicio});
 
-  final ServicioLlamadas servicio;
+  final servicioLlamadas servicio;
 
   @override
-  State<PantallaLlamadaReceptor> createState() => _PantallaLlamadaReceptorState();
+  State<pantallaLlamadaReceptor> createState() => _pantallaLlamadaReceptorState();
 }
 
-class _PantallaLlamadaReceptorState extends State<PantallaLlamadaReceptor> with SingleTickerProviderStateMixin {
+class _pantallaLlamadaReceptorState extends State<pantallaLlamadaReceptor> with SingleTickerProviderStateMixin {
   late final servicioLlamadaReceptorNativo _nativo;
   late final AnimationController _pulso;
   String? _ultimoIdNativo;
@@ -55,7 +55,7 @@ class _PantallaLlamadaReceptorState extends State<PantallaLlamadaReceptor> with 
     setState(() {});
   }
 
-  String _tituloInterlocutor(EstadoUiLlamada ui) {
+  String _tituloInterlocutor(estadoUiLlamada ui) {
     final e = ui.llamadaEntrante;
     if (e != null) return e.nombreEmisor?.trim().isNotEmpty == true ? e.nombreEmisor! : e.idEmisor;
     final a = ui.llamadaActiva;
@@ -65,8 +65,8 @@ class _PantallaLlamadaReceptorState extends State<PantallaLlamadaReceptor> with 
     return 'Llamada';
   }
 
-  String _subtitulo(EstadoUiLlamada ui) {
-    if (!ServicioLlamadas.soportaLlamadasVozNativo) return 'Audio no disponible aqui';
+  String _subtitulo(estadoUiLlamada ui) {
+    if (!servicioLlamadas.soportaLlamadasVozNativo) return 'Audio no disponible aqui';
     if (ui.textoError != null) return '';
     if (ui.enCanalAgora) return ui.remotoEnCanal ? 'En llamada' : 'Conectando...';
     if (ui.cargandoAccion) return 'Uniendo...';
@@ -74,7 +74,7 @@ class _PantallaLlamadaReceptorState extends State<PantallaLlamadaReceptor> with 
     return '';
   }
 
-  static bool _enSesion(EstadoUiLlamada ui) {
+  static bool _enSesion(estadoUiLlamada ui) {
     if (ui.enCanalAgora) return true;
     final a = ui.llamadaActiva;
     return a != null && a.estado == EstadoLlamadaFirebase.aceptada;
@@ -111,7 +111,7 @@ class _PantallaLlamadaReceptorState extends State<PantallaLlamadaReceptor> with 
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          if (!ServicioLlamadas.soportaLlamadasVozNativo)
+          if (!servicioLlamadas.soportaLlamadasVozNativo)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(

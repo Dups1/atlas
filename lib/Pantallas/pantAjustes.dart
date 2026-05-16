@@ -1,20 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/servicioPerfilApi.dart';
-import '../Servicios/servicioUbicacion.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
+import '../Servicios/ubicacion/servicioUbicacion.dart';
 
-class VistaCuenta extends StatefulWidget {
-  const VistaCuenta({super.key});
+class vistaCuenta extends StatefulWidget {
+  const vistaCuenta({super.key});
 
   @override
-  State<VistaCuenta> createState() => _VistaCuentaState();
+  State<vistaCuenta> createState() => _vistaCuentaState();
 }
 
-class _VistaCuentaState extends State<VistaCuenta> {
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
+class _vistaCuentaState extends State<vistaCuenta> {
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
   late final Future<Map<String, dynamic>> _perfilFuture;
 
   @override
@@ -69,15 +69,15 @@ class _VistaCuentaState extends State<VistaCuenta> {
   }
 }
 
-class VistaConfiguraciones extends StatefulWidget {
-  const VistaConfiguraciones({super.key});
+class vistaConfiguraciones extends StatefulWidget {
+  const vistaConfiguraciones({super.key});
 
   @override
-  State<VistaConfiguraciones> createState() => _VistaConfiguracionesState();
+  State<vistaConfiguraciones> createState() => _vistaConfiguracionesState();
 }
 
-class _VistaConfiguracionesState extends State<VistaConfiguraciones> {
-  final ServicioUbicacion _ubicacion = ServicioUbicacion();
+class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
+  final servicioUbicacion _ubicacion = servicioUbicacion();
   String _textoEstadoPermiso = 'Cargando...';
   String? _ultimaLectura;
   bool _cargandoPermiso = true;
@@ -216,8 +216,8 @@ class _VistaConfiguracionesState extends State<VistaConfiguraciones> {
   }
 }
 
-class VistaAcerca extends StatelessWidget {
-  const VistaAcerca({super.key});
+class vistaAcerca extends StatelessWidget {
+  const vistaAcerca({super.key});
 
   @override
   Widget build(BuildContext context) {

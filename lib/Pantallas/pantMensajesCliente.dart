@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/servicioMensajes.dart';
-import '../Servicios/servicioPerfilApi.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/mensajes/servicioMensajes.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
 import 'pantChatDetCliente.dart';
 
-class PantallaMensajesCliente extends StatefulWidget {
+class pantallaMensajesCliente extends StatefulWidget {
   final int initialTabIndex;
   final String initialSearch;
 
-  const PantallaMensajesCliente({
+  const pantallaMensajesCliente({
     super.key,
     this.initialTabIndex = 0,
     this.initialSearch = '',
   });
 
   @override
-  State<PantallaMensajesCliente> createState() => _PantallaMensajesClienteState();
+  State<pantallaMensajesCliente> createState() => _pantallaMensajesClienteState();
 }
 
-class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with SingleTickerProviderStateMixin {
-  final ServicioMensajes _mensajes = ServicioMensajes();
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
+class _pantallaMensajesClienteState extends State<pantallaMensajesCliente> with SingleTickerProviderStateMixin {
+  final servicioMensajes _mensajes = servicioMensajes();
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
   final TextEditingController _searchController = TextEditingController();
   late final TabController _tabController;
   String _search = '';
@@ -132,7 +132,7 @@ class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with 
       return const Center(child: Text('Sin sesion'));
     }
     final uid = _miUid!;
-    return StreamBuilder<List<ConversacionRemota>>(
+    return StreamBuilder<List<conversacionRemota>>(
       stream: _mensajes.streamConversaciones(uid),
       builder: (context, snap) {
         if (snap.hasError) {
@@ -153,7 +153,7 @@ class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with 
         if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final todas = snap.data ?? const <ConversacionRemota>[];
+        final todas = snap.data ?? const <conversacionRemota>[];
         return TabBarView(
           controller: _tabController,
           children: [
@@ -169,7 +169,7 @@ class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with 
     );
   }
 
-  Widget _buildList(List<ConversacionRemota> source, String miUid, {required bool vistaCliente}) {
+  Widget _buildList(List<conversacionRemota> source, String miUid, {required bool vistaCliente}) {
     final list = source.where((c) {
       if (_search.isEmpty) return true;
       final titulo = c.tituloLista(miUid, vistaCliente: vistaCliente);
@@ -204,7 +204,7 @@ class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with 
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => PantallaChatDetalleCliente(
+                builder: (_) => pantallaChatDetalleCliente(
                   conversationId: c.id,
                   tituloAppBar: titulo,
                 ),

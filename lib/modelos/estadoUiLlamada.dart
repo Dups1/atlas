@@ -4,7 +4,7 @@ import '../modelos/llamadaModelo.dart';
 
 /// Estado de UI para pantallas de llamada (motor Agora + Firestore + entrada manual).
 @immutable
-class EstadoUiLlamada {
+class estadoUiLlamada {
   final String etiquetaConexion;
   final bool motorRtcListo;
   final bool enCanalAgora;
@@ -16,10 +16,10 @@ class EstadoUiLlamada {
   final bool indicadorHablaRemoto;
   final String? textoError;
   final bool cargandoAccion;
-  final LlamadaModelo? llamadaEntrante;
-  final LlamadaModelo? llamadaActiva;
+  final llamadaModelo? llamadaEntrante;
+  final llamadaModelo? llamadaActiva;
 
-  const EstadoUiLlamada({
+  const estadoUiLlamada({
     this.etiquetaConexion = 'inactivo',
     this.motorRtcListo = false,
     this.enCanalAgora = false,
@@ -35,7 +35,7 @@ class EstadoUiLlamada {
     this.llamadaActiva,
   });
 
-  EstadoUiLlamada copiar({
+  estadoUiLlamada copiar({
     String? etiquetaConexion,
     bool? motorRtcListo,
     bool? enCanalAgora,
@@ -49,12 +49,12 @@ class EstadoUiLlamada {
     String? textoError,
     bool limpiarError = false,
     bool? cargandoAccion,
-    LlamadaModelo? llamadaEntrante,
+    llamadaModelo? llamadaEntrante,
     bool limpiarEntrante = false,
-    LlamadaModelo? llamadaActiva,
+    llamadaModelo? llamadaActiva,
     bool limpiarActiva = false,
   }) {
-    return EstadoUiLlamada(
+    return estadoUiLlamada(
       etiquetaConexion: etiquetaConexion ?? this.etiquetaConexion,
       motorRtcListo: motorRtcListo ?? this.motorRtcListo,
       enCanalAgora: enCanalAgora ?? this.enCanalAgora,

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../Servicios/servicioLlamadas.dart';
-import '../Servicios/servicioPerfilFirebase.dart';
-import '../Servicios/selectorArchivo.dart';
-import '../Servicios/servicioAlmacenamiento.dart';
-import '../Servicios/servicioCategorias.dart';
-import '../Servicios/sesionService.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
+import '../Servicios/perfil/servicioPerfilFirebase.dart';
+import '../Servicios/almacenamiento/selectorArchivo.dart';
+import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
+import '../Servicios/categorias/servicioCategorias.dart';
+import '../Servicios/autenticacion/sesionService.dart';
 import '../widgets/alcanceServicioLlamadas.dart';
 import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
@@ -18,17 +18,17 @@ import 'navegacionChat.dart';
 import 'pantMensajesTrabajador.dart';
 import 'pantPortafolioTrabajador.dart';
 
-class PantallaTrabajador extends StatefulWidget {
-  const PantallaTrabajador({super.key});
+class pantallaTrabajador extends StatefulWidget {
+  const pantallaTrabajador({super.key});
 
   @override
-  State<PantallaTrabajador> createState() => _PantallaTrabajadorState();
+  State<pantallaTrabajador> createState() => _pantallaTrabajadorState();
 }
 
-class _PantallaTrabajadorState extends State<PantallaTrabajador> {
+class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  final SesionService _sesionService = SesionService();
-  late final ServicioLlamadas _servicioLlamadas;
+  final sesionService _sesionService = sesionService();
+  late final servicioLlamadas _servicioLlamadas;
   bool _servicioLlamadasInicializada = false;
   int _selectedIndex = 0;
 
@@ -70,7 +70,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
           subtitle: const Text('Tema y permisos'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaConfiguraciones()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaConfiguraciones()));
           },
         ),
         ListTile(
@@ -79,7 +79,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
           subtitle: const Text('Redes sociales y versión'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaAcerca()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
           },
         ),
         ListTile(
@@ -99,7 +99,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const PantallaAuth()),
+      MaterialPageRoute(builder: (_) => const pantallaAuth()),
       (route) => false,
     );
   }
@@ -128,7 +128,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
                 icon: const Icon(Icons.science),
                 tooltip: 'Laboratorio',
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
+                  MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
                 ),
               ),
               IconButton(
@@ -137,7 +137,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
               ),
             ],
           ),
-          body: const WorkerProfileView(embedded: true),
+          body: const workerProfileView(embedded: true),
           endDrawer: _settingsDrawer(),
           bottomNavigationBar: _buildBottomBar(),
         ),
@@ -175,22 +175,22 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
                     setState(() => _selectedIndex = index);
                     if (index == 1) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaCalendarioTrabajador()),
+                        MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
                       );
                     }
                     if (index == 2) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaMensajesTrabajador()),
+                        MaterialPageRoute(builder: (_) => const pantallaMensajesTrabajador()),
                       );
                     }
                     if (index == 3) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => PantallaPortafolioTrabajador()),
+                        MaterialPageRoute(builder: (_) => pantallaPortafolioTrabajador()),
                       );
                     }
                     if (index == 4) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PerfilTrabajadorBasicoView()),
+                        MaterialPageRoute(builder: (_) => const perfilTrabajadorBasicoView()),
                       );
                     }
                   },
@@ -219,13 +219,13 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   }
 }
 
-class WorkerProfileView extends StatefulWidget {
+class workerProfileView extends StatefulWidget {
   /// Si se provee [initialData] se muestra ese perfil (modo lectura desde cliente).
   final Map<String, dynamic>? initialData;
   final bool readOnly;
   final bool embedded;
 
-  const WorkerProfileView({
+  const workerProfileView({
     super.key,
     this.initialData,
     this.readOnly = false,
@@ -233,28 +233,28 @@ class WorkerProfileView extends StatefulWidget {
   });
 
   @override
-  State<WorkerProfileView> createState() => _WorkerProfileViewState();
+  State<workerProfileView> createState() => _workerProfileViewState();
 }
 
-class PerfilTrabajadorBasicoView extends StatefulWidget {
-  const PerfilTrabajadorBasicoView({super.key});
+class perfilTrabajadorBasicoView extends StatefulWidget {
+  const perfilTrabajadorBasicoView({super.key});
 
   @override
-  State<PerfilTrabajadorBasicoView> createState() => _PerfilTrabajadorBasicoViewState();
+  State<perfilTrabajadorBasicoView> createState() => _perfilTrabajadorBasicoViewState();
 }
 
-class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView> {
-  final ServicioPerfilFirebase _perfilService = ServicioPerfilFirebase();
-  final ServicioCategorias _categoriasService = ServicioCategorias();
-  final ServicioAlmacenamiento _almacenamiento = ServicioAlmacenamiento();
+class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView> {
+  final servicioPerfilFirebase _perfilService = servicioPerfilFirebase();
+  final servicioCategorias _categoriasService = servicioCategorias();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
   late final Future<Map<String, dynamic>> _perfilFuture;
-  late final Future<List<Categoria>> _categoriasFuture;
+  late final Future<List<categoria>> _categoriasFuture;
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _categoriaController = TextEditingController();
   final TextEditingController _subcategoriaController = TextEditingController();
-  Categoria? _categoriaSeleccionada;
+  categoria? _categoriaSeleccionada;
   String? _subcategoriaSeleccionada;
   bool _uploadingPhoto = false;
   bool _savingFields = false;
@@ -464,7 +464,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
               ),
             ),
             const SizedBox(height: 12),
-            FutureBuilder<List<Categoria>>(
+            FutureBuilder<List<categoria>>(
               future: _categoriasFuture,
               builder: (ctx, catSnapshot) {
                 if (catSnapshot.connectionState == ConnectionState.waiting) {
@@ -476,7 +476,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                 }
 
                 if (_categoriaSeleccionada == null && _categoriaController.text.isNotEmpty) {
-                  Categoria? match;
+                  categoria? match;
                   for (final c in categorias) {
                     if (c.nombre == _categoriaController.text) {
                       match = c;
@@ -498,7 +498,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
 
                 return Column(
                   children: [
-                    DropdownButtonFormField<Categoria>(
+                    DropdownButtonFormField<categoria>(
                       initialValue: _categoriaSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Categoria',
@@ -507,7 +507,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                       ),
                       items: categorias
                           .map(
-                            (c) => DropdownMenuItem<Categoria>(
+                            (c) => DropdownMenuItem<categoria>(
                               value: c,
                               child: Text('${c.emoji} ${c.nombre}'),
                             ),
@@ -668,15 +668,15 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
   }
 }
 
-class _WorkerProfileViewState extends State<WorkerProfileView> {
-  final ServicioPerfilFirebase _perfilService = ServicioPerfilFirebase();
+class _workerProfileViewState extends State<workerProfileView> {
+  final servicioPerfilFirebase _perfilService = servicioPerfilFirebase();
   late final Future<Map<String, dynamic>> _profileFuture;
   bool _initialized = false;
   bool _uploadingPhoto = false;
   bool _uploadingGallery = false;
   Map<String, dynamic> _profileData = {};
   List<String> _gallery = [];
-  final ServicioAlmacenamiento _almacenamiento = ServicioAlmacenamiento();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
 
   static const List<String> _fallbackGallery = [];
 
@@ -903,7 +903,7 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const PantallaCalendarioTrabajador()),
+                          MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
                         );
                       },
                       icon: const Icon(Icons.calendar_month_outlined, size: 18),
@@ -949,7 +949,7 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
                     }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PantallaMensajesTrabajador(
+                        builder: (_) => pantallaMensajesTrabajador(
                           initialTabIndex: 1,
                           initialSearch: cliente,
                         ),

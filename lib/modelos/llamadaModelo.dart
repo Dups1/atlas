@@ -22,7 +22,7 @@ enum EstadoLlamadaFirebase {
 }
 
 /// Modelo de documento `llamadas/{id}` para senalizacion y sincronizacion.
-class LlamadaModelo {
+class llamadaModelo {
   final String idLlamada;
   final String idEmisor;
   final String idReceptor;
@@ -33,7 +33,7 @@ class LlamadaModelo {
   final String? nombreEmisor;
   final String? nombreReceptor;
 
-  const LlamadaModelo({
+  const llamadaModelo({
     required this.idLlamada,
     required this.idEmisor,
     required this.idReceptor,
@@ -60,9 +60,9 @@ class LlamadaModelo {
     };
   }
 
-  factory LlamadaModelo.fromFirestore(DocumentSnapshot<Map<String, dynamic>> d) {
+  factory llamadaModelo.fromFirestore(DocumentSnapshot<Map<String, dynamic>> d) {
     final m = d.data() ?? {};
-    return LlamadaModelo(
+    return llamadaModelo(
       idLlamada: (m['idLlamada'] as String?) ?? d.id,
       idEmisor: (m['idEmisor'] as String?) ?? '',
       idReceptor: (m['idReceptor'] as String?) ?? '',
@@ -80,13 +80,13 @@ class LlamadaModelo {
     return null;
   }
 
-  LlamadaModelo copiarCon({
+  llamadaModelo copiarCon({
     EstadoLlamadaFirebase? estado,
     bool? activa,
     String? nombreEmisor,
     String? nombreReceptor,
   }) {
-    return LlamadaModelo(
+    return llamadaModelo(
       idLlamada: idLlamada,
       idEmisor: idEmisor,
       idReceptor: idReceptor,

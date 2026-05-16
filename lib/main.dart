@@ -3,8 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
-import 'Servicios/servicioLlamadas.dart';
-import 'Servicios/agora/manejadorMensajeriaLlamadas.dart'
+import 'Servicios/llamadas/servicioLlamadas.dart';
+import 'Servicios/llamadas/agora/manejadorMensajeriaLlamadas.dart'
     show manejadorMensajeriaLlamadasSegundoPlano;
 import 'preferencias/stubWebPreferencias.dart'
     if (dart.library.html) 'package:shared_preferences_web/shared_preferences_web.dart';
@@ -21,18 +21,18 @@ Future<void> main() async {
   if (!kIsWeb) {
     FirebaseMessaging.onBackgroundMessage(manejadorMensajeriaLlamadasSegundoPlano);
   }
-  runApp(const Aplicacion());
+  runApp(const aplicacion());
 }
 
-class Aplicacion extends StatefulWidget {
-  const Aplicacion({super.key});
+class aplicacion extends StatefulWidget {
+  const aplicacion({super.key});
 
   @override
-  State<Aplicacion> createState() => _AplicacionState();
+  State<aplicacion> createState() => _aplicacionState();
 }
 
-class _AplicacionState extends State<Aplicacion> {
-  final ServicioLlamadas _servicioLlamadas = ServicioLlamadas();
+class _aplicacionState extends State<aplicacion> {
+  final servicioLlamadas _servicioLlamadas = servicioLlamadas();
 
   @override
   void dispose() {
@@ -51,7 +51,7 @@ class _AplicacionState extends State<Aplicacion> {
             padding: EdgeInsets.zero,
           ),
         ),
-        home: const PantallaAuth(),
+        home: const pantallaAuth(),
         debugShowCheckedModeBanner: false,
       ),
     );

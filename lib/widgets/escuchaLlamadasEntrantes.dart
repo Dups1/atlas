@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../Pantallas/pantLlamadaReceptor.dart';
-import '../Servicios/servicioLlamadas.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
 import '../modelos/estadoUiLlamada.dart';
 import '../modelos/llamadaModelo.dart';
 import 'alcanceServicioLlamadas.dart';
 
-/// Abre [PantallaLlamadaReceptor] cuando hay [EstadoUiLlamada.llamadaEntrante] y cierra si la llamada se cancela sin sesion.
+/// Abre [pantallaLlamadaReceptor] cuando hay [estadoUiLlamada.llamadaEntrante] y cierra si la llamada se cancela sin sesion.
 class escuchaLlamadasEntrantes extends StatefulWidget {
   const escuchaLlamadasEntrantes({super.key, required this.child});
 
@@ -20,7 +20,7 @@ class _escuchaLlamadasEntrantesState extends State<escuchaLlamadasEntrantes> {
   bool _rutaReceptorAbierta = false;
   bool _cerrandoPorListener = false;
 
-  void _sincronizar(BuildContext context, ServicioLlamadas servicio) {
+  void _sincronizar(BuildContext context, servicioLlamadas servicio) {
     if (!context.mounted) return;
     final ui = servicio.estadoUi;
     final entrante = ui.llamadaEntrante;
@@ -35,7 +35,7 @@ class _escuchaLlamadasEntrantesState extends State<escuchaLlamadasEntrantes> {
             opaque: true,
             settings: const RouteSettings(name: 'pantallaLlamadaReceptor'),
             pageBuilder: (ctx, animation, secondaryAnimation) {
-              return PantallaLlamadaReceptor(servicio: servicio);
+              return pantallaLlamadaReceptor(servicio: servicio);
             },
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
@@ -63,7 +63,7 @@ class _escuchaLlamadasEntrantesState extends State<escuchaLlamadasEntrantes> {
     }
   }
 
-  static bool _enSesionActiva(EstadoUiLlamada ui) {
+  static bool _enSesionActiva(estadoUiLlamada ui) {
     if (ui.enCanalAgora) return true;
     final a = ui.llamadaActiva;
     if (a == null) return false;

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class PantallaReservaCliente extends StatefulWidget {
-  const PantallaReservaCliente({super.key});
+class pantallaReservaCliente extends StatefulWidget {
+  const pantallaReservaCliente({super.key});
 
   @override
-  State<PantallaReservaCliente> createState() => _PantallaReservaClienteState();
+  State<pantallaReservaCliente> createState() => _pantallaReservaClienteState();
 }
 
-class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
+class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   final TextEditingController _direccionController = TextEditingController();
   final TextEditingController _referenciasController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
