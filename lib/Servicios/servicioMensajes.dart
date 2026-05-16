@@ -152,6 +152,17 @@ class ServicioMensajes {
 
   ServicioMensajes({String? baseUrl}) : baseUrl = baseUrl ?? ConfigBackend.urlBase;
 
+  /// `conversationId` del backend: dos UIDs ordenados unidos por un solo `_`.
+  static String? otroUidDesdeConversationId(String conversationId, String miUid) {
+    final parts = conversationId.split('_');
+    if (parts.length != 2) return null;
+    final a = parts[0];
+    final b = parts[1];
+    if (a == miUid) return b;
+    if (b == miUid) return a;
+    return null;
+  }
+
   Future<Map<String, String>> _headersAuth() async {
     final token = await _storage.recuperarToken();
     if (token == null) throw Exception('Sesion no iniciada');

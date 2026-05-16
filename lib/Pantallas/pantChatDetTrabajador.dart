@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../Servicios/autenticacionStorage.dart';
 import '../Servicios/servicioMensajes.dart';
 import '../Servicios/servicioPerfilApi.dart';
+import '../widgets/alcance_servicio_llamadas.dart';
+import 'pantLlamadaEmisor.dart';
 
 class PantallaChatDetalleTrabajador extends StatefulWidget {
   final String conversationId;
@@ -57,6 +59,39 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
     }
   }
 
+  void _abrirLlamada() {
+    if (_miUid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Espera a cargar la sesion')),
+      );
+      return;
+    }
+    final otro = ServicioMensajes.otroUidDesdeConversationId(widget.conversationId, _miUid!);
+    if (otro == null || otro.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo obtener el UID del contacto')),
+      );
+      return;
+    }
+    final servicio = alcanceServicioLlamadas.maybeOf(context);
+    if (servicio == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Servicio de llamadas no disponible en esta pantalla')),
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PantallaLlamadaEmisor(
+          tituloAppBar: 'Llamada',
+          idReceptorInicial: otro,
+          nombreRemotoInicial: widget.tituloAppBar,
+          servicioCompartido: servicio,
+        ),
+      ),
+    );
+  }
+
   Future<void> _send() async {
     final text = _inputController.text.trim();
     if (text.isEmpty || _enviando) return;
@@ -89,7 +124,7 @@ class _PantallaChatDetalleTrabajadorState extends State<PantallaChatDetalleTraba
           ],
         ),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.phone_outlined)),
+          IconButton(onPressed: _abrirLlamada, icon: const Icon(Icons.phone_outlined)),
           IconButton(onPressed: () {}, icon: const Icon(Icons.location_on_outlined)),
         ],
       ),

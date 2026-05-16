@@ -1,86 +1,42 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/servicioLaboratorio.dart';
+import '../modelos/llamadaModelo.dart';
+import '../Servicios/servicioLlamadas.dart';
 
-/// Botones de llamada (mute, altavoz, colgar, aceptar/rechazar) separados de la pantalla principal.
-class ControlesLlamada extends StatelessWidget {
-  final ServicioLaboratorio servicio;
-  final VoidCallback onIniciarLlamada;
-  final TextEditingController controladorIdReceptor;
+/// Panel de estado Firestore + controles Agora (mute, altavoz, colgar). Compartido emisor / receptor en sesion.
+class panelSesionLlamadaAgora extends StatelessWidget {
+  const panelSesionLlamadaAgora({super.key, required this.servicio});
 
-  const ControlesLlamada({
-    super.key,
-    required this.servicio,
-    required this.onIniciarLlamada,
-    required this.controladorIdReceptor,
-  });
+  final ServicioLlamadas servicio;
+
+  static LlamadaModelo? _modeloParaEstadoFirestore(LlamadaModelo? activa) {
+    final m = activa;
+    if (m == null || m.estado == null) return null;
+    return m;
+  }
 
   @override
   Widget build(BuildContext context) {
     final ui = servicio.estadoUi;
-    final entrante = ui.llamadaEntrante;
     final activa = ui.llamadaActiva;
+    final modeloEstado = _modeloParaEstadoFirestore(activa);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: controladorIdReceptor,
-              decoration: const InputDecoration(
-                labelText: 'UID Firebase del receptor',
-                border: OutlineInputBorder(),
-              ),
-              enabled: !ui.cargandoAccion && !ui.enCanalAgora,
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: ui.cargandoAccion || !ServicioLaboratorio.soportaLlamadasVozNativo
-                  ? null
-                  : onIniciarLlamada,
-              icon: ui.cargandoAccion
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.call),
-              label: const Text('Iniciar llamada'),
-            ),
-            if (entrante != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Entrante: ${entrante.nombreEmisor ?? entrante.idEmisor}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.tonal(
-                      onPressed: ui.cargandoAccion ? null : servicio.rechazarLlamadaEntrante,
-                      child: const Text('Rechazar'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: ui.cargandoAccion ? null : servicio.aceptarLlamadaEntrante,
-                      child: const Text('Aceptar'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (activa != null && activa.estado != null) ...[
-              const SizedBox(height: 8),
-              Text('Estado Firestore: ${activa.estado!.claveFirestore}'),
-            ],
+            if (modeloEstado != null) indicadorEstadoFirestore(modelo: modeloEstado),
             if (ui.enCanalAgora) ...[
-              const SizedBox(height: 16),
+              if (modeloEstado != null) const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -106,6 +62,125 @@ class ControlesLlamada extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Llamada saliente: UID, iniciar, estado y sesion. La entrante va en [PantallaLlamadaReceptor].
+class ControlesLlamada extends StatelessWidget {
+  final ServicioLlamadas servicio;
+  final VoidCallback onIniciarLlamada;
+  final TextEditingController controladorIdReceptor;
+  final bool ocultarCampoIdReceptor;
+
+  const ControlesLlamada({
+    super.key,
+    required this.servicio,
+    required this.onIniciarLlamada,
+    required this.controladorIdReceptor,
+    this.ocultarCampoIdReceptor = false,
+  });
+
+  static LlamadaModelo? _modeloParaEstadoFirestore(LlamadaModelo? activa) {
+    final m = activa;
+    if (m == null || m.estado == null) return null;
+    return m;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = servicio.estadoUi;
+    final activa = ui.llamadaActiva;
+    final modeloEstado = _modeloParaEstadoFirestore(activa);
+
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!ocultarCampoIdReceptor) ...[
+              TextField(
+                controller: controladorIdReceptor,
+                decoration: const InputDecoration(
+                  labelText: 'UID del contacto (solo pruebas)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                enabled: !ui.cargandoAccion && !ui.enCanalAgora,
+              ),
+              const SizedBox(height: 12),
+            ],
+            FilledButton.icon(
+              onPressed: ui.cargandoAccion || !ServicioLlamadas.soportaLlamadasVozNativo
+                  ? null
+                  : onIniciarLlamada,
+              icon: ui.cargandoAccion
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.call),
+              label: Text(ocultarCampoIdReceptor ? 'Llamar' : 'Iniciar llamada'),
+            ),
+            if (modeloEstado != null || ui.enCanalAgora) ...[
+              const SizedBox(height: 12),
+              panelSesionLlamadaAgora(servicio: servicio),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class indicadorEstadoFirestore extends StatelessWidget {
+  const indicadorEstadoFirestore({super.key, required this.modelo});
+
+  final LlamadaModelo modelo;
+
+  static bool estadoActivo(EstadoLlamadaFirebase e) {
+    return e == EstadoLlamadaFirebase.timbrando || e == EstadoLlamadaFirebase.aceptada;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = modelo.estado;
+    if (e == null) return const SizedBox.shrink();
+
+    final ok = estadoActivo(e);
+    final color = ok ? const Color(0xFF2E7D32) : Theme.of(context).colorScheme.error;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.45), blurRadius: 6, spreadRadius: 0),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          e.claveFirestore,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+      ],
     );
   }
 }

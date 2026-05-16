@@ -145,7 +145,7 @@ class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: _urgencia,
+                      initialValue: _urgencia,
                       decoration: const InputDecoration(
                         labelText: 'Nivel de urgencia',
                         border: OutlineInputBorder(),
@@ -172,7 +172,7 @@ class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _pago,
+                      initialValue: _pago,
                       decoration: const InputDecoration(
                         labelText: 'Metodo de pago',
                         border: OutlineInputBorder(),

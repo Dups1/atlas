@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../Servicios/autenticacionStorage.dart';
 import '../Servicios/servicioMensajes.dart';
 import '../Servicios/servicioPerfilApi.dart';
+import '../widgets/alcance_servicio_llamadas.dart';
 import 'pantChatDetCliente.dart';
 
 class PantallaMensajesCliente extends StatefulWidget {
@@ -204,9 +205,12 @@ class _PantallaMensajesClienteState extends State<PantallaMensajesCliente> with 
           onTap: () async {
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => PantallaChatDetalleCliente(
-                  conversationId: c.id,
-                  tituloAppBar: titulo,
+                builder: (_) => alcanceServicioLlamadas.envolverChatSiHayServicio(
+                  context,
+                  PantallaChatDetalleCliente(
+                    conversationId: c.id,
+                    tituloAppBar: titulo,
+                  ),
                 ),
               ),
             );

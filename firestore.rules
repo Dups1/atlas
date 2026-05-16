@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Chat: snapshots desde el cliente (Stream en servicioMensajes).
+    match /conversaciones/{convId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.participantes;
+
+      match /mensajes/{msgId} {
+        allow read: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/conversaciones/$(convId)).data.participantes;
+      }
+    }
+
+    // Llamadas: solo lectura desde el cliente (altas y cambios de estado van por backend Admin SDK).
+    match /llamadas/{idLlamada} {
+      allow read: if request.auth != null
+        && (resource.data.idEmisor == request.auth.uid
+            || resource.data.idReceptor == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    // Solo backend; evita que el cliente lea/escriba presencia de llamadas.
+    match /llamadas_presencia/{uid} {
+      allow read, write: if false;
+    }
+
+    match /tokens_llamadas/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

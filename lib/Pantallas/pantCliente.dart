@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../Servicios/autenticacionStorage.dart';
+import '../Servicios/servicioLlamadas.dart';
 import '../Servicios/servicioPerfilApi.dart';
 import '../Servicios/servicioTrabajadores.dart';
 import '../Servicios/sesionService.dart';
+import '../widgets/alcance_servicio_llamadas.dart';
+import '../widgets/escucha_llamadas_entrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantLaboratorio.dart';
@@ -28,6 +33,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
   final ServicioTrabajadores _trabajadoresService = ServicioTrabajadores();
   final AutenticacionStorage _storage = AutenticacionStorage();
   final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
+  late final ServicioLlamadas _servicioLlamadas;
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
   List<Map<String, dynamic>> _all = [];
@@ -37,11 +43,16 @@ class _PantallaClienteState extends State<PantallaCliente> {
   @override
   void initState() {
     super.initState();
+    _servicioLlamadas = ServicioLlamadas();
     _trabajadoresFuture = _trabajadoresService.fetchTrabajadores();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
+    });
   }
 
   @override
   void dispose() {
+    unawaited(_servicioLlamadas.terminarRecursos());
     _controller.dispose();
     super.dispose();
   }
@@ -60,6 +71,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
+    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -182,100 +194,105 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: const Text('Explorar Atlas'),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.science),
-            tooltip: 'Laboratorio',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(76),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: _controller,
-              onChanged: _filter,
-              decoration: InputDecoration(
-                hintText: 'Busca por nombre o categoria',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+    return alcanceServicioLlamadas(
+      servicioLlamadas: _servicioLlamadas,
+      child: escuchaLlamadasEntrantes(
+        child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: const Text('Explorar Atlas'),
+            centerTitle: true,
+            backgroundColor: Colors.black,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.science),
+                tooltip: 'Laboratorio',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(76),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: TextField(
+                  controller: _controller,
+                  onChanged: _filter,
+                  decoration: InputDecoration(
+                    hintText: 'Busca por nombre o categoria',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _trabajadoresFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+          body: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _trabajadoresFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
 
-          final data = snapshot.data ?? [];
-          final trabajadores = data
-              .where((w) => (w['rol'] ?? '').toString().toLowerCase() == 'trabajador')
-              .toList();
+              final data = snapshot.data ?? [];
+              final trabajadores = data
+                  .where((w) => (w['rol'] ?? '').toString().toLowerCase() == 'trabajador')
+                  .toList();
 
-          if (_all.isEmpty && trabajadores.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _all = trabajadores;
-                  _filtered = trabajadores;
+              if (_all.isEmpty && trabajadores.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _all = trabajadores;
+                      _filtered = trabajadores;
+                    });
+                  }
                 });
               }
-            });
-          }
 
-          if (_filtered.isEmpty && _controller.text.isEmpty) {
-            if (trabajadores.isEmpty) {
-              return const Center(child: Text('No hay trabajadores registrados'));
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: trabajadores.length,
-              itemBuilder: (_, i) => _buildCard(trabajadores[i]),
-            );
-          }
+              if (_filtered.isEmpty && _controller.text.isEmpty) {
+                if (trabajadores.isEmpty) {
+                  return const Center(child: Text('No hay trabajadores registrados'));
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: trabajadores.length,
+                  itemBuilder: (_, i) => _buildCard(trabajadores[i]),
+                );
+              }
 
-          if (_filtered.isEmpty) {
-            return const Center(child: Text('Sin resultados'));
-          }
+              if (_filtered.isEmpty) {
+                return const Center(child: Text('Sin resultados'));
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _filtered.length,
-            itemBuilder: (_, i) => _buildCard(_filtered[i]),
-          );
-        },
-      ),
-      endDrawer: Drawer(
-        child: StatefulBuilder(
-          builder: (ctx, _) => _buildDrawerContent(context: ctx),
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _filtered.length,
+                itemBuilder: (_, i) => _buildCard(_filtered[i]),
+              );
+            },
+          ),
+          endDrawer: Drawer(
+            child: StatefulBuilder(
+              builder: (ctx, _) => _buildDrawerContent(context: ctx),
+            ),
+          ),
+          bottomNavigationBar: _buildBottomBar(),
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 

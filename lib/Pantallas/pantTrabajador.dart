@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../Servicios/servicioLlamadas.dart';
 import '../Servicios/servicioPerfilFirebase.dart';
 import '../Servicios/selectorArchivo.dart';
 import '../Servicios/servicioAlmacenamiento.dart';
 import '../Servicios/servicioCategorias.dart';
 import '../Servicios/sesionService.dart';
+import '../widgets/alcance_servicio_llamadas.dart';
+import '../widgets/escucha_llamadas_entrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantCalendarioTrabajador.dart';
@@ -23,7 +28,23 @@ class PantallaTrabajador extends StatefulWidget {
 class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   final SesionService _sesionService = SesionService();
+  late final ServicioLlamadas _servicioLlamadas;
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _servicioLlamadas = ServicioLlamadas();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_servicioLlamadas.terminarRecursos());
+    super.dispose();
+  }
 
   Widget _buildDrawerContent({required BuildContext context}) {
     return ListView(
@@ -63,6 +84,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
+    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -83,29 +105,34 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: const Text('Panel de control'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF7B1E3A),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.science),
-            tooltip: 'Laboratorio',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
-            ),
+    return alcanceServicioLlamadas(
+      servicioLlamadas: _servicioLlamadas,
+      child: escuchaLlamadasEntrantes(
+        child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: const Text('Panel de control'),
+            centerTitle: true,
+            backgroundColor: const Color(0xFF7B1E3A),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.science),
+                tooltip: 'Laboratorio',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-          ),
-        ],
+          body: const WorkerProfileView(embedded: true),
+          endDrawer: _settingsDrawer(),
+          bottomNavigationBar: _buildBottomBar(),
+        ),
       ),
-      body: const WorkerProfileView(embedded: true),
-      endDrawer: _settingsDrawer(),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -464,7 +491,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                 return Column(
                   children: [
                     DropdownButtonFormField<Categoria>(
-                      value: _categoriaSeleccionada,
+                      initialValue: _categoriaSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Categoria',
                         border: OutlineInputBorder(),
@@ -489,7 +516,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _subcategoriaSeleccionada,
+                      initialValue: _subcategoriaSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Subcategoria',
                         border: OutlineInputBorder(),
