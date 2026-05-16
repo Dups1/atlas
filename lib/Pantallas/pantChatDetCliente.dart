@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../Servicios/autenticacionStorage.dart';
 import '../Servicios/servicioMensajes.dart';
 import '../Servicios/servicioPerfilApi.dart';
-import '../widgets/alcance_servicio_llamadas.dart';
+import '../widgets/alcanceServicioLlamadas.dart';
 import 'pantLlamadaEmisor.dart';
 
 class PantallaChatDetalleCliente extends StatefulWidget {
@@ -73,13 +73,7 @@ class _PantallaChatDetalleClienteState extends State<PantallaChatDetalleCliente>
       );
       return;
     }
-    final servicio = alcanceServicioLlamadas.maybeOf(context);
-    if (servicio == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Servicio de llamadas no disponible en esta pantalla')),
-      );
-      return;
-    }
+    final servicio = alcanceServicioLlamadas.of(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PantallaLlamadaEmisor(

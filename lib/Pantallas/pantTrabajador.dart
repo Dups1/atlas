@@ -8,8 +8,8 @@ import '../Servicios/selectorArchivo.dart';
 import '../Servicios/servicioAlmacenamiento.dart';
 import '../Servicios/servicioCategorias.dart';
 import '../Servicios/sesionService.dart';
-import '../widgets/alcance_servicio_llamadas.dart';
-import '../widgets/escucha_llamadas_entrantes.dart';
+import '../widgets/alcanceServicioLlamadas.dart';
+import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantCalendarioTrabajador.dart';
@@ -29,20 +29,31 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   final SesionService _sesionService = SesionService();
   late final ServicioLlamadas _servicioLlamadas;
+  bool _servicioLlamadasInicializada = false;
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _servicioLlamadas = ServicioLlamadas();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_servicioLlamadasInicializada) return;
+    _servicioLlamadas = alcanceServicioLlamadas.of(context);
+    _servicioLlamadasInicializada = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       await _servicioLlamadas.prepararMensajeriaYAutenticacion();
     });
   }
 
   @override
   void dispose() {
-    unawaited(_servicioLlamadas.terminarRecursos());
+    if (_servicioLlamadasInicializada) {
+      unawaited(_servicioLlamadas.terminarRecursos());
+    }
     super.dispose();
   }
 
@@ -105,10 +116,8 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
 
   @override
   Widget build(BuildContext context) {
-    return alcanceServicioLlamadas(
-      servicioLlamadas: _servicioLlamadas,
-      child: escuchaLlamadasEntrantes(
-        child: Scaffold(
+    return escuchaLlamadasEntrantes(
+      child: Scaffold(
           key: _scaffoldKey,
           appBar: AppBar(
             title: const Text('Panel de control'),
@@ -132,7 +141,6 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
           endDrawer: _settingsDrawer(),
           bottomNavigationBar: _buildBottomBar(),
         ),
-      ),
     );
   }
 

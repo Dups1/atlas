@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../Llamadas/servicio_llamada_receptor_nativo.dart';
-import '../Llamadas/servicio_llamada_receptor_nativo_fabrica.dart';
+import '../Llamadas/servicioLlamadaReceptorNativo.dart';
+import '../Llamadas/servicioLlamadaReceptorNativoFabrica.dart';
 import '../Servicios/servicioLlamadas.dart';
 import '../modelos/estadoUiLlamada.dart';
 import '../modelos/llamadaModelo.dart';

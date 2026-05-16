@@ -174,7 +174,7 @@ class _PantallaLlamadaEmisorState extends State<PantallaLlamadaEmisor> with Sing
             ),
           ],
           const SizedBox(height: 16),
-          ControlesLlamada(
+          controlesLlamada(
             servicio: _servicio,
             controladorIdReceptor: _controladorUidReceptor,
             onIniciarLlamada: _iniciarLlamada,

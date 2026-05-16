@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import '../modelos/llamadaModelo.dart';
-import 'servicio_llamada_android.dart';
-import 'servicio_llamada_ios.dart';
-import 'servicio_llamada_receptor_nativo.dart';
+import 'servicioLlamadaAndroid.dart';
+import 'servicioLlamadaIos.dart';
+import 'servicioLlamadaReceptorNativo.dart';
 
 class servicioLlamadaReceptorNativoNulo implements servicioLlamadaReceptorNativo {
   @override

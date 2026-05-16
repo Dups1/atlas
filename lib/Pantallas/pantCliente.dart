@@ -7,8 +7,8 @@ import '../Servicios/servicioLlamadas.dart';
 import '../Servicios/servicioPerfilApi.dart';
 import '../Servicios/servicioTrabajadores.dart';
 import '../Servicios/sesionService.dart';
-import '../widgets/alcance_servicio_llamadas.dart';
-import '../widgets/escucha_llamadas_entrantes.dart';
+import '../widgets/alcanceServicioLlamadas.dart';
+import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantLaboratorio.dart';
@@ -34,6 +34,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
   final AutenticacionStorage _storage = AutenticacionStorage();
   final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
   late final ServicioLlamadas _servicioLlamadas;
+  bool _servicioLlamadasInicializada = false;
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
   List<Map<String, dynamic>> _all = [];
@@ -43,16 +44,26 @@ class _PantallaClienteState extends State<PantallaCliente> {
   @override
   void initState() {
     super.initState();
-    _servicioLlamadas = ServicioLlamadas();
     _trabajadoresFuture = _trabajadoresService.fetchTrabajadores();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_servicioLlamadasInicializada) return;
+    _servicioLlamadas = alcanceServicioLlamadas.of(context);
+    _servicioLlamadasInicializada = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       await _servicioLlamadas.prepararMensajeriaYAutenticacion();
     });
   }
 
   @override
   void dispose() {
-    unawaited(_servicioLlamadas.terminarRecursos());
+    if (_servicioLlamadasInicializada) {
+      unawaited(_servicioLlamadas.terminarRecursos());
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -129,9 +140,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PantallaPerfilTrabajadorPublico(data: w),
-          ),
+          MaterialPageRoute(builder: (_) => PantallaPerfilTrabajadorPublico(data: w)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -194,10 +203,8 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
   @override
   Widget build(BuildContext context) {
-    return alcanceServicioLlamadas(
-      servicioLlamadas: _servicioLlamadas,
-      child: escuchaLlamadasEntrantes(
-        child: Scaffold(
+    return escuchaLlamadasEntrantes(
+      child: Scaffold(
           key: _scaffoldKey,
           appBar: AppBar(
             title: const Text('Explorar Atlas'),
@@ -292,7 +299,6 @@ class _PantallaClienteState extends State<PantallaCliente> {
           ),
           bottomNavigationBar: _buildBottomBar(),
         ),
-      ),
     );
   }
 

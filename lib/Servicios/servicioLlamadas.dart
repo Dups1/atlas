@@ -37,6 +37,7 @@ class ServicioLlamadas extends ChangeNotifier {
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subEntrantes;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subDocumentoLlamada;
+  StreamSubscription<RemoteMessage>? _subMensajeForeground;
   Timer? _temporizadorTimbre;
 
   EstadoUiLlamada _ui = const EstadoUiLlamada();
@@ -136,7 +137,8 @@ class ServicioLlamadas extends ChangeNotifier {
       }
     }
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage m) {
+    await _subMensajeForeground?.cancel();
+    _subMensajeForeground = FirebaseMessaging.onMessage.listen((RemoteMessage m) {
       final tipo = m.data['tipo'];
       if (tipo == 'llamada_entrante') {
         _ponerError(null);
@@ -409,8 +411,10 @@ class ServicioLlamadas extends ChangeNotifier {
     _temporizadorTimbre?.cancel();
     await _subEntrantes?.cancel();
     await _subDocumentoLlamada?.cancel();
+    await _subMensajeForeground?.cancel();
     _subEntrantes = null;
     _subDocumentoLlamada = null;
+    _subMensajeForeground = null;
 
     await _motorRtc.liberar();
 

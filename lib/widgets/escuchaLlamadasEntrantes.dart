@@ -4,7 +4,7 @@ import '../Pantallas/pantLlamadaReceptor.dart';
 import '../Servicios/servicioLlamadas.dart';
 import '../modelos/estadoUiLlamada.dart';
 import '../modelos/llamadaModelo.dart';
-import 'alcance_servicio_llamadas.dart';
+import 'alcanceServicioLlamadas.dart';
 
 /// Abre [PantallaLlamadaReceptor] cuando hay [EstadoUiLlamada.llamadaEntrante] y cierra si la llamada se cancela sin sesion.
 class escuchaLlamadasEntrantes extends StatefulWidget {

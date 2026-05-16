@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../Servicios/servicioMensajes.dart';
-import '../widgets/alcance_servicio_llamadas.dart';
 import 'pantChatDetCliente.dart';
 import 'pantChatDetTrabajador.dart';
 
@@ -28,12 +27,9 @@ Future<void> abrirChatClienteConTrabajador(
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => alcanceServicioLlamadas.envolverChatSiHayServicio(
-          context,
-          PantallaChatDetalleCliente(
-            conversationId: cid,
-            tituloAppBar: tituloMostrar,
-          ),
+        builder: (_) => PantallaChatDetalleCliente(
+          conversationId: cid,
+          tituloAppBar: tituloMostrar,
         ),
       ),
     );
@@ -62,12 +58,9 @@ Future<void> abrirChatTrabajadorConCliente(
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => alcanceServicioLlamadas.envolverChatSiHayServicio(
-          context,
-          PantallaChatDetalleTrabajador(
-            conversationId: cid,
-            tituloAppBar: tituloMostrar,
-          ),
+        builder: (_) => PantallaChatDetalleTrabajador(
+          conversationId: cid,
+          tituloAppBar: tituloMostrar,
         ),
       ),
     );

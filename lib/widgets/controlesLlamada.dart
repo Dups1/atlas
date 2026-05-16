@@ -67,13 +67,13 @@ class panelSesionLlamadaAgora extends StatelessWidget {
 }
 
 /// Llamada saliente: UID, iniciar, estado y sesion. La entrante va en [PantallaLlamadaReceptor].
-class ControlesLlamada extends StatelessWidget {
+class controlesLlamada extends StatelessWidget {
   final ServicioLlamadas servicio;
   final VoidCallback onIniciarLlamada;
   final TextEditingController controladorIdReceptor;
   final bool ocultarCampoIdReceptor;
 
-  const ControlesLlamada({
+  const controlesLlamada({
     super.key,
     required this.servicio,
     required this.onIniciarLlamada,
