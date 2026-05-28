@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/calendarioMockService.dart';
+import '../Servicios/laboratorio/calendarioMockService.dart';
 
-class PantallaCalendarioTrabajador extends StatefulWidget {
-  const PantallaCalendarioTrabajador({super.key});
+class pantallaCalendarioTrabajador extends StatefulWidget {
+  const pantallaCalendarioTrabajador({super.key});
 
   @override
-  State<PantallaCalendarioTrabajador> createState() => _PantallaCalendarioTrabajadorState();
+  State<pantallaCalendarioTrabajador> createState() => _pantallaCalendarioTrabajadorState();
 }
 
-class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabajador> {
-  final CalendarioMockService _service = CalendarioMockService.instance;
+class _pantallaCalendarioTrabajadorState extends State<pantallaCalendarioTrabajador> {
+  final calendarioMockService _service = calendarioMockService.instance;
   late DateTime _mesActual;
   late DateTime _diaSeleccionado;
 
@@ -22,7 +22,7 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
     _diaSeleccionado = DateTime(now.year, now.month, now.day);
   }
 
-  List<EventoCalendario> get _eventosDia => _service.eventosDelDia(_diaSeleccionado);
+  List<eventoCalendario> get _eventosDia => _service.eventosDelDia(_diaSeleccionado);
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +172,7 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
     return ListView.separated(
       padding: const EdgeInsets.all(12),
       itemCount: _eventosDia.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final e = _eventosDia[index];
         final rango = '${_hhmm(e.inicio)} - ${_hhmm(e.fin)}';
@@ -236,15 +236,14 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
     );
     final fin = inicio.add(const Duration(hours: 1));
     await _service.agregarBloqueo(inicio: inicio, fin: fin, notas: 'Bloqueo rapido');
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bloqueo agregado')),
-      );
-    }
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bloqueo agregado')),
+    );
   }
 
-  Future<void> _abrirDetalleEvento(EventoCalendario evento) async {
+  Future<void> _abrirDetalleEvento(eventoCalendario evento) async {
     EstadoEventoCalendario estado = evento.estado;
     await showModalBottomSheet<void>(
       context: context,
@@ -264,7 +263,7 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
                   Text('Horario: ${_hhmm(evento.inicio)} - ${_hhmm(evento.fin)}'),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<EstadoEventoCalendario>(
-                    value: estado,
+                    initialValue: estado,
                     decoration: const InputDecoration(
                       labelText: 'Estado',
                       border: OutlineInputBorder(),
@@ -285,9 +284,8 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
                         child: OutlinedButton.icon(
                           onPressed: () async {
                             await _reprogramarEvento(evento);
-                            if (mounted) {
-                              Navigator.of(ctx).pop();
-                            }
+                            if (!mounted || !ctx.mounted) return;
+                            Navigator.of(ctx).pop();
                           },
                           icon: const Icon(Icons.schedule_outlined),
                           label: const Text('Reprogramar'),
@@ -298,10 +296,9 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
                         child: ElevatedButton.icon(
                           onPressed: () async {
                             await _service.actualizarEvento(evento.copyWith(estado: estado));
-                            if (mounted) {
-                              setState(() {});
-                              Navigator.of(ctx).pop();
-                            }
+                            if (!mounted || !ctx.mounted) return;
+                            setState(() {});
+                            Navigator.of(ctx).pop();
                           },
                           icon: const Icon(Icons.save_outlined),
                           label: const Text('Guardar'),
@@ -314,10 +311,9 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
                     TextButton(
                       onPressed: () async {
                         await _service.eliminarEvento(evento.id);
-                        if (mounted) {
-                          setState(() {});
-                          Navigator.of(ctx).pop();
-                        }
+                        if (!mounted || !ctx.mounted) return;
+                        setState(() {});
+                        Navigator.of(ctx).pop();
                       },
                       child: const Text('Eliminar bloqueo'),
                     ),
@@ -331,7 +327,7 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
     );
   }
 
-  Future<void> _reprogramarEvento(EventoCalendario evento) async {
+  Future<void> _reprogramarEvento(eventoCalendario evento) async {
     final nuevaFecha = await showDatePicker(
       context: context,
       initialDate: evento.inicio,
@@ -339,6 +335,7 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
       lastDate: DateTime(2035),
     );
     if (nuevaFecha == null) return;
+    if (!mounted) return;
     final nuevaHora = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(evento.inicio),
@@ -357,12 +354,11 @@ class _PantallaCalendarioTrabajadorState extends State<PantallaCalendarioTrabaja
     await _service.actualizarEvento(
       evento.copyWith(inicio: nuevoInicio, fin: nuevoFin),
     );
-    if (mounted) {
-      setState(() {
-        _mesActual = DateTime(nuevoInicio.year, nuevoInicio.month, 1);
-        _diaSeleccionado = DateTime(nuevoInicio.year, nuevoInicio.month, nuevoInicio.day);
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _mesActual = DateTime(nuevoInicio.year, nuevoInicio.month, 1);
+      _diaSeleccionado = DateTime(nuevoInicio.year, nuevoInicio.month, nuevoInicio.day);
+    });
   }
 
   String _hhmm(DateTime d) {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/portafolioMockService.dart';
+import '../Servicios/laboratorio/portafolioMockService.dart';
 
-class PantallaPortafolioTrabajador extends StatelessWidget {
-  PantallaPortafolioTrabajador({super.key});
+class pantallaPortafolioTrabajador extends StatelessWidget {
+  pantallaPortafolioTrabajador({super.key});
 
-  final PortafolioMockService _service = PortafolioMockService.instance;
+  final portafolioMockService _service = portafolioMockService.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +55,7 @@ class PantallaPortafolioTrabajador extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PantallaProyectoDetalle(proyecto: p),
+                        builder: (_) => pantallaProyectoDetalle(proyecto: p),
                       ),
                     );
                   },
@@ -109,10 +109,10 @@ class PantallaPortafolioTrabajador extends StatelessWidget {
   }
 }
 
-class PantallaProyectoDetalle extends StatelessWidget {
-  final PortafolioProyecto proyecto;
+class pantallaProyectoDetalle extends StatelessWidget {
+  final portafolioProyecto proyecto;
 
-  const PantallaProyectoDetalle({super.key, required this.proyecto});
+  const pantallaProyectoDetalle({super.key, required this.proyecto});
 
   @override
   Widget build(BuildContext context) {

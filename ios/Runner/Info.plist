@@ -68,5 +68,13 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Atlas usa tu ubicacion para funciones de la app.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Atlas necesita el microfono para llamadas de voz.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

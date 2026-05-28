@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/selectorArchivo.dart';
-import '../Servicios/servicioAlmacenamiento.dart';
-import '../Servicios/servicioPerfilApi.dart';
-import '../Servicios/servicioPerfilFirebase.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/almacenamiento/selectorArchivo.dart';
+import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
+import '../Servicios/perfil/servicioPerfilFirebase.dart';
 
-class PerfilClienteView extends StatefulWidget {
-  const PerfilClienteView({super.key});
+class perfilClienteView extends StatefulWidget {
+  const perfilClienteView({super.key});
 
   @override
-  State<PerfilClienteView> createState() => _PerfilClienteViewState();
+  State<perfilClienteView> createState() => _perfilClienteViewState();
 }
 
-class _PerfilClienteViewState extends State<PerfilClienteView> {
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
-  final ServicioAlmacenamiento _almacenamiento = ServicioAlmacenamiento();
-  final ServicioPerfilFirebase _perfilFirebase = ServicioPerfilFirebase();
+class _perfilClienteViewState extends State<perfilClienteView> {
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
+  final servicioPerfilFirebase _perfilFirebase = servicioPerfilFirebase();
   late final Future<Map<String, dynamic>> _perfilFuture;
   bool _uploadingPhoto = false;
   Map<String, dynamic>? _perfilCache;

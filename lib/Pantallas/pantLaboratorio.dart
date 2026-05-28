@@ -1,21 +1,44 @@
 import 'package:flutter/material.dart';
 
-class PantallaLaboratorio extends StatelessWidget {
-  const PantallaLaboratorio({super.key});
+class pantallaLaboratorio extends StatefulWidget {
+  const pantallaLaboratorio({super.key});
 
   @override
+  State<pantallaLaboratorio> createState() => _pantallaLaboratorioState();
+}
+
+class _pantallaLaboratorioState extends State<pantallaLaboratorio> {
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Laboratorio'),
         centerTitle: true,
+        elevation: 0,
       ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Area de laboratorio lista para nuevas funciones.',
-            textAlign: TextAlign.center,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.primary.withValues(alpha: 0.1),
+              theme.colorScheme.secondary.withValues(alpha: 0.1),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'Laboratorio de IA - Proximamente',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),

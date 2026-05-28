@@ -1,32 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../Servicios/autenticacionStorage.dart';
-import '../Servicios/servicioPerfilApi.dart';
-import '../Servicios/servicioTrabajadores.dart';
-import '../Servicios/sesionService.dart';
+import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
+import '../Servicios/perfil/servicioPerfilApi.dart';
+import '../Servicios/trabajadores/servicioTrabajadores.dart';
+import '../Servicios/autenticacion/sesionService.dart';
+import '../widgets/alcanceModoEnigma.dart';
+import '../widgets/alcanceServicioLlamadas.dart';
+import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantLaboratorio.dart';
+import 'navegacionChat.dart';
 import 'pantMensajesCliente.dart';
 import 'pantPerfilCliente.dart';
 import 'pantPerfilTrabPublico.dart';
 import 'pantReservaCliente.dart';
 import 'pantTrabajador.dart';
 
-class PantallaCliente extends StatefulWidget {
-  const PantallaCliente({super.key});
+class pantallaCliente extends StatefulWidget {
+  const pantallaCliente({super.key});
 
   @override
-  State<PantallaCliente> createState() => _PantallaClienteState();
+  State<pantallaCliente> createState() => _pantallaClienteState();
 }
 
-class _PantallaClienteState extends State<PantallaCliente> {
+class _pantallaClienteState extends State<pantallaCliente> {
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  final SesionService _sesionService = SesionService();
-  final ServicioTrabajadores _trabajadoresService = ServicioTrabajadores();
-  final AutenticacionStorage _storage = AutenticacionStorage();
-  final ServicioPerfilApi _perfilApi = ServicioPerfilApi();
+  final sesionService _sesionService = sesionService();
+  final servicioTrabajadores _trabajadoresService = servicioTrabajadores();
+  final autenticacionStorage _storage = autenticacionStorage();
+  final servicioPerfilApi _perfilApi = servicioPerfilApi();
+  late final servicioLlamadas _servicioLlamadas;
+  bool _servicioLlamadasInicializada = false;
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
   List<Map<String, dynamic>> _all = [];
@@ -40,7 +49,22 @@ class _PantallaClienteState extends State<PantallaCliente> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_servicioLlamadasInicializada) return;
+    _servicioLlamadas = alcanceServicioLlamadas.of(context);
+    _servicioLlamadasInicializada = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
+    });
+  }
+
+  @override
   void dispose() {
+    if (_servicioLlamadasInicializada) {
+      unawaited(_servicioLlamadas.terminarRecursos());
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -56,13 +80,38 @@ class _PantallaClienteState extends State<PantallaCliente> {
     });
   }
 
+  Widget _botonModoEnigma(BuildContext context) {
+    final modoEnigma = alcanceModoEnigma.of(context);
+    final color = modoEnigma.activo ? Colors.green : Colors.red;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: TextButton(
+        onPressed: modoEnigma.alternar,
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Text(
+          'Modo enigma',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
+    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const PantallaAuth()),
+      MaterialPageRoute(builder: (_) => const pantallaAuth()),
       (route) => false,
     );
   }
@@ -80,7 +129,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
           subtitle: const Text('Tema y permisos'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaConfiguraciones()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaConfiguraciones()));
           },
         ),
         ListTile(
@@ -89,7 +138,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
           subtitle: const Text('Redes sociales y version'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaAcerca()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
           },
         ),
         ListTile(
@@ -116,9 +165,7 @@ class _PantallaClienteState extends State<PantallaCliente> {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PantallaPerfilTrabajadorPublico(data: w),
-          ),
+          MaterialPageRoute(builder: (_) => pantallaPerfilTrabajadorPublico(data: w)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -157,14 +204,18 @@ class _PantallaClienteState extends State<PantallaCliente> {
               IconButton(
                 icon: const Icon(Icons.message_outlined),
                 onPressed: () {
-                  final nombre = w['nombre'] as String? ?? '';
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaMensajesCliente(
-                        initialTabIndex: 0,
-                        initialSearch: nombre,
-                      ),
-                    ),
+                  final nombre = w['nombre'] as String? ?? 'Trabajador';
+                  final uid = uidDesdeMapaUsuario(w);
+                  if (uid.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Este perfil no tiene id de usuario')),
+                    );
+                    return;
+                  }
+                  abrirChatClienteConTrabajador(
+                    context,
+                    trabajadorUid: uid,
+                    tituloMostrar: nombre,
                   );
                 },
               ),
@@ -177,100 +228,103 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: const Text('Explorar Atlas'),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.science),
-            tooltip: 'Laboratorio',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(76),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: _controller,
-              onChanged: _filter,
-              decoration: InputDecoration(
-                hintText: 'Busca por nombre o categoria',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+    return escuchaLlamadasEntrantes(
+      child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: const Text('Explorar Atlas'),
+            centerTitle: true,
+            backgroundColor: Colors.black,
+            actions: [
+              _botonModoEnigma(context),
+              IconButton(
+                icon: const Icon(Icons.science),
+                tooltip: 'Laboratorio',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(76),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: TextField(
+                  controller: _controller,
+                  onChanged: _filter,
+                  decoration: InputDecoration(
+                    hintText: 'Busca por nombre o categoria',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _trabajadoresFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+          body: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _trabajadoresFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
 
-          final data = snapshot.data ?? [];
-          final trabajadores = data
-              .where((w) => (w['rol'] ?? '').toString().toLowerCase() == 'trabajador')
-              .toList();
+              final data = snapshot.data ?? [];
+              final trabajadores = data
+                  .where((w) => (w['rol'] ?? '').toString().toLowerCase() == 'trabajador')
+                  .toList();
 
-          if (_all.isEmpty && trabajadores.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _all = trabajadores;
-                  _filtered = trabajadores;
+              if (_all.isEmpty && trabajadores.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _all = trabajadores;
+                      _filtered = trabajadores;
+                    });
+                  }
                 });
               }
-            });
-          }
 
-          if (_filtered.isEmpty && _controller.text.isEmpty) {
-            if (trabajadores.isEmpty) {
-              return const Center(child: Text('No hay trabajadores registrados'));
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: trabajadores.length,
-              itemBuilder: (_, i) => _buildCard(trabajadores[i]),
-            );
-          }
+              if (_filtered.isEmpty && _controller.text.isEmpty) {
+                if (trabajadores.isEmpty) {
+                  return const Center(child: Text('No hay trabajadores registrados'));
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: trabajadores.length,
+                  itemBuilder: (_, i) => _buildCard(trabajadores[i]),
+                );
+              }
 
-          if (_filtered.isEmpty) {
-            return const Center(child: Text('Sin resultados'));
-          }
+              if (_filtered.isEmpty) {
+                return const Center(child: Text('Sin resultados'));
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _filtered.length,
-            itemBuilder: (_, i) => _buildCard(_filtered[i]),
-          );
-        },
-      ),
-      endDrawer: Drawer(
-        child: StatefulBuilder(
-          builder: (ctx, _) => _buildDrawerContent(context: ctx),
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _filtered.length,
+                itemBuilder: (_, i) => _buildCard(_filtered[i]),
+              );
+            },
+          ),
+          endDrawer: Drawer(
+            child: StatefulBuilder(
+              builder: (ctx, _) => _buildDrawerContent(context: ctx),
+            ),
+          ),
+          bottomNavigationBar: _buildBottomBar(),
         ),
-      ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -304,12 +358,12 @@ class _PantallaClienteState extends State<PantallaCliente> {
                     setState(() => _selectedIndex = index);
                     if (index == 1) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaMensajesCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaMensajesCliente()),
                       );
                     }
                     if (index == 2) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaReservaCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaReservaCliente()),
                       );
                     }
                     if (index == 3) {
@@ -349,11 +403,11 @@ class _PantallaClienteState extends State<PantallaCliente> {
 
       if (rol == 'trabajador') {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WorkerProfileView()),
+          MaterialPageRoute(builder: (_) => const workerProfileView()),
         );
       } else {
         Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const PerfilClienteView()),
+          MaterialPageRoute(builder: (_) => const perfilClienteView()),
         );
       }
     } catch (e) {

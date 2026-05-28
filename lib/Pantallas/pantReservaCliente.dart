@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class PantallaReservaCliente extends StatefulWidget {
-  const PantallaReservaCliente({super.key});
+class pantallaReservaCliente extends StatefulWidget {
+  const pantallaReservaCliente({super.key});
 
   @override
-  State<PantallaReservaCliente> createState() => _PantallaReservaClienteState();
+  State<pantallaReservaCliente> createState() => _pantallaReservaClienteState();
 }
 
-class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
+class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   final TextEditingController _direccionController = TextEditingController();
   final TextEditingController _referenciasController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
@@ -145,7 +145,7 @@ class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
-                      value: _urgencia,
+                      initialValue: _urgencia,
                       decoration: const InputDecoration(
                         labelText: 'Nivel de urgencia',
                         border: OutlineInputBorder(),
@@ -172,7 +172,7 @@ class _PantallaReservaClienteState extends State<PantallaReservaCliente> {
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _pago,
+                      initialValue: _pago,
                       decoration: const InputDecoration(
                         labelText: 'Metodo de pago',
                         border: OutlineInputBorder(),

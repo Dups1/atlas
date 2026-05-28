@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'pantMensajesCliente.dart';
+import 'navegacionChat.dart';
 import 'pantReservaCliente.dart';
 
-class PantallaPerfilTrabajadorPublico extends StatelessWidget {
+class pantallaPerfilTrabajadorPublico extends StatelessWidget {
   final Map<String, dynamic> data;
 
-  const PantallaPerfilTrabajadorPublico({
+  const pantallaPerfilTrabajadorPublico({
     super.key,
     required this.data,
   });
@@ -101,7 +101,7 @@ class PantallaPerfilTrabajadorPublico extends StatelessWidget {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: galeria.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (_, i) => ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Image.network(
@@ -123,13 +123,17 @@ class PantallaPerfilTrabajadorPublico extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PantallaMensajesCliente(
-                            initialTabIndex: 0,
-                            initialSearch: nombre,
-                          ),
-                        ),
+                      final uid = uidDesdeMapaUsuario(data);
+                      if (uid.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Este perfil no tiene id de usuario')),
+                        );
+                        return;
+                      }
+                      abrirChatClienteConTrabajador(
+                        context,
+                        trabajadorUid: uid,
+                        tituloMostrar: nombre,
                       );
                     },
                     icon: const Icon(Icons.message_outlined),
@@ -141,7 +145,7 @@ class PantallaPerfilTrabajadorPublico extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaReservaCliente()),
+                        MaterialPageRoute(builder: (_) => const pantallaReservaCliente()),
                       );
                     },
                     icon: const Icon(Icons.calendar_month_outlined),

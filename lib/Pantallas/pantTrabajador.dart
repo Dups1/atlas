@@ -1,28 +1,86 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../Servicios/servicioPerfilFirebase.dart';
-import '../Servicios/selectorArchivo.dart';
-import '../Servicios/servicioAlmacenamiento.dart';
-import '../Servicios/servicioCategorias.dart';
-import '../Servicios/sesionService.dart';
+import '../Servicios/llamadas/servicioLlamadas.dart';
+import '../Servicios/perfil/servicioPerfilFirebase.dart';
+import '../Servicios/almacenamiento/selectorArchivo.dart';
+import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
+import '../Servicios/categorias/servicioCategorias.dart';
+import '../Servicios/autenticacion/sesionService.dart';
+import '../widgets/alcanceModoEnigma.dart';
+import '../widgets/alcanceServicioLlamadas.dart';
+import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantCalendarioTrabajador.dart';
 import 'pantLaboratorio.dart';
+import 'navegacionChat.dart';
 import 'pantMensajesTrabajador.dart';
 import 'pantPortafolioTrabajador.dart';
 
-class PantallaTrabajador extends StatefulWidget {
-  const PantallaTrabajador({super.key});
+class pantallaTrabajador extends StatefulWidget {
+  const pantallaTrabajador({super.key});
 
   @override
-  State<PantallaTrabajador> createState() => _PantallaTrabajadorState();
+  State<pantallaTrabajador> createState() => _pantallaTrabajadorState();
 }
 
-class _PantallaTrabajadorState extends State<PantallaTrabajador> {
+class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
-  final SesionService _sesionService = SesionService();
+  final sesionService _sesionService = sesionService();
+  late final servicioLlamadas _servicioLlamadas;
+  bool _servicioLlamadasInicializada = false;
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_servicioLlamadasInicializada) return;
+    _servicioLlamadas = alcanceServicioLlamadas.of(context);
+    _servicioLlamadasInicializada = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_servicioLlamadasInicializada) {
+      unawaited(_servicioLlamadas.terminarRecursos());
+    }
+    super.dispose();
+  }
+
+  Widget _botonModoEnigma(BuildContext context) {
+    final modoEnigma = alcanceModoEnigma.of(context);
+    final color = modoEnigma.activo ? Colors.green : Colors.red;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: TextButton(
+        onPressed: modoEnigma.alternar,
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Text(
+          'Modo enigma',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
 
   Widget _buildDrawerContent({required BuildContext context}) {
     return ListView(
@@ -37,7 +95,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
           subtitle: const Text('Tema y permisos'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaConfiguraciones()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaConfiguraciones()));
           },
         ),
         ListTile(
@@ -46,7 +104,7 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
           subtitle: const Text('Redes sociales y versión'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VistaAcerca()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
           },
         ),
         ListTile(
@@ -62,10 +120,11 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
+    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const PantallaAuth()),
+      MaterialPageRoute(builder: (_) => const pantallaAuth()),
       (route) => false,
     );
   }
@@ -82,29 +141,37 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        title: const Text('Panel de control'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF7B1E3A),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.science),
-            tooltip: 'Laboratorio',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PantallaLaboratorio()),
-            ),
+    return escuchaLlamadasEntrantes(
+      child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: const Text('Panel de control'),
+            centerTitle: true,
+            backgroundColor: const Color(0xFF7B1E3A),
+            actions: [
+              _botonModoEnigma(context),
+              IconButton(
+                icon: const Icon(Icons.science),
+                tooltip: 'Laboratorio',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              const workerProfileView(embedded: true),
+            ],
           ),
-        ],
-      ),
-      body: const WorkerProfileView(embedded: true),
-      endDrawer: _settingsDrawer(),
-      bottomNavigationBar: _buildBottomBar(),
+          endDrawer: _settingsDrawer(),
+          bottomNavigationBar: _buildBottomBar(),
+        ),
     );
   }
 
@@ -139,22 +206,22 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
                     setState(() => _selectedIndex = index);
                     if (index == 1) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaCalendarioTrabajador()),
+                        MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
                       );
                     }
                     if (index == 2) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PantallaMensajesTrabajador()),
+                        MaterialPageRoute(builder: (_) => const pantallaMensajesTrabajador()),
                       );
                     }
                     if (index == 3) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => PantallaPortafolioTrabajador()),
+                        MaterialPageRoute(builder: (_) => pantallaPortafolioTrabajador()),
                       );
                     }
                     if (index == 4) {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PerfilTrabajadorBasicoView()),
+                        MaterialPageRoute(builder: (_) => const perfilTrabajadorBasicoView()),
                       );
                     }
                   },
@@ -183,13 +250,13 @@ class _PantallaTrabajadorState extends State<PantallaTrabajador> {
   }
 }
 
-class WorkerProfileView extends StatefulWidget {
+class workerProfileView extends StatefulWidget {
   /// Si se provee [initialData] se muestra ese perfil (modo lectura desde cliente).
   final Map<String, dynamic>? initialData;
   final bool readOnly;
   final bool embedded;
 
-  const WorkerProfileView({
+  const workerProfileView({
     super.key,
     this.initialData,
     this.readOnly = false,
@@ -197,28 +264,28 @@ class WorkerProfileView extends StatefulWidget {
   });
 
   @override
-  State<WorkerProfileView> createState() => _WorkerProfileViewState();
+  State<workerProfileView> createState() => _workerProfileViewState();
 }
 
-class PerfilTrabajadorBasicoView extends StatefulWidget {
-  const PerfilTrabajadorBasicoView({super.key});
+class perfilTrabajadorBasicoView extends StatefulWidget {
+  const perfilTrabajadorBasicoView({super.key});
 
   @override
-  State<PerfilTrabajadorBasicoView> createState() => _PerfilTrabajadorBasicoViewState();
+  State<perfilTrabajadorBasicoView> createState() => _perfilTrabajadorBasicoViewState();
 }
 
-class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView> {
-  final ServicioPerfilFirebase _perfilService = ServicioPerfilFirebase();
-  final ServicioCategorias _categoriasService = ServicioCategorias();
-  final ServicioAlmacenamiento _almacenamiento = ServicioAlmacenamiento();
+class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView> {
+  final servicioPerfilFirebase _perfilService = servicioPerfilFirebase();
+  final servicioCategorias _categoriasService = servicioCategorias();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
   late final Future<Map<String, dynamic>> _perfilFuture;
-  late final Future<List<Categoria>> _categoriasFuture;
+  late final Future<List<categoria>> _categoriasFuture;
   final TextEditingController _nombreController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _categoriaController = TextEditingController();
   final TextEditingController _subcategoriaController = TextEditingController();
-  Categoria? _categoriaSeleccionada;
+  categoria? _categoriaSeleccionada;
   String? _subcategoriaSeleccionada;
   bool _uploadingPhoto = false;
   bool _savingFields = false;
@@ -428,7 +495,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
               ),
             ),
             const SizedBox(height: 12),
-            FutureBuilder<List<Categoria>>(
+            FutureBuilder<List<categoria>>(
               future: _categoriasFuture,
               builder: (ctx, catSnapshot) {
                 if (catSnapshot.connectionState == ConnectionState.waiting) {
@@ -440,7 +507,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                 }
 
                 if (_categoriaSeleccionada == null && _categoriaController.text.isNotEmpty) {
-                  Categoria? match;
+                  categoria? match;
                   for (final c in categorias) {
                     if (c.nombre == _categoriaController.text) {
                       match = c;
@@ -462,8 +529,8 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
 
                 return Column(
                   children: [
-                    DropdownButtonFormField<Categoria>(
-                      value: _categoriaSeleccionada,
+                    DropdownButtonFormField<categoria>(
+                      initialValue: _categoriaSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Categoria',
                         border: OutlineInputBorder(),
@@ -471,7 +538,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                       ),
                       items: categorias
                           .map(
-                            (c) => DropdownMenuItem<Categoria>(
+                            (c) => DropdownMenuItem<categoria>(
                               value: c,
                               child: Text('${c.emoji} ${c.nombre}'),
                             ),
@@ -488,7 +555,7 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _subcategoriaSeleccionada,
+                      initialValue: _subcategoriaSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Subcategoria',
                         border: OutlineInputBorder(),
@@ -632,15 +699,15 @@ class _PerfilTrabajadorBasicoViewState extends State<PerfilTrabajadorBasicoView>
   }
 }
 
-class _WorkerProfileViewState extends State<WorkerProfileView> {
-  final ServicioPerfilFirebase _perfilService = ServicioPerfilFirebase();
+class _workerProfileViewState extends State<workerProfileView> {
+  final servicioPerfilFirebase _perfilService = servicioPerfilFirebase();
   late final Future<Map<String, dynamic>> _profileFuture;
   bool _initialized = false;
   bool _uploadingPhoto = false;
   bool _uploadingGallery = false;
   Map<String, dynamic> _profileData = {};
   List<String> _gallery = [];
-  final ServicioAlmacenamiento _almacenamiento = ServicioAlmacenamiento();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
 
   static const List<String> _fallbackGallery = [];
 
@@ -822,11 +889,11 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _itemSolicitud('Pedro M', 'Fuga de agua en baño'),
+                  _itemSolicitud('Pedro M', 'Fuga de agua en baño', clienteUid: null),
                   const Divider(height: 20),
-                  _itemSolicitud('Laura G', 'Instalacion de luminaria en sala'),
+                  _itemSolicitud('Laura G', 'Instalacion de luminaria en sala', clienteUid: null),
                   const Divider(height: 20),
-                  _itemSolicitud('Carlos R', 'Revision de corto en cocina'),
+                  _itemSolicitud('Carlos R', 'Revision de corto en cocina', clienteUid: null),
                 ],
               ),
             ),
@@ -867,7 +934,7 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const PantallaCalendarioTrabajador()),
+                          MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
                         );
                       },
                       icon: const Icon(Icons.calendar_month_outlined, size: 18),
@@ -883,7 +950,7 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
     );
   }
 
-  Widget _itemSolicitud(String cliente, String problema) {
+  Widget _itemSolicitud(String cliente, String problema, {String? clienteUid}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -902,9 +969,18 @@ class _WorkerProfileViewState extends State<WorkerProfileView> {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
                   onPressed: () {
+                    final uid = clienteUid?.trim();
+                    if (uid != null && uid.isNotEmpty) {
+                      abrirChatTrabajadorConCliente(
+                        context,
+                        clienteUid: uid,
+                        tituloMostrar: cliente,
+                      );
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PantallaMensajesTrabajador(
+                        builder: (_) => pantallaMensajesTrabajador(
                           initialTabIndex: 1,
                           initialSearch: cliente,
                         ),
