@@ -8,6 +8,7 @@ import '../Servicios/almacenamiento/selectorArchivo.dart';
 import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
 import '../Servicios/categorias/servicioCategorias.dart';
 import '../Servicios/autenticacion/sesionService.dart';
+import '../widgets/alcanceModoEnigma.dart';
 import '../widgets/alcanceServicioLlamadas.dart';
 import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
@@ -55,6 +56,30 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
       unawaited(_servicioLlamadas.terminarRecursos());
     }
     super.dispose();
+  }
+
+  Widget _botonModoEnigma(BuildContext context) {
+    final modoEnigma = alcanceModoEnigma.of(context);
+    final color = modoEnigma.activo ? Colors.green : Colors.red;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: TextButton(
+        onPressed: modoEnigma.alternar,
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Text(
+          'Modo enigma',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
   }
 
   Widget _buildDrawerContent({required BuildContext context}) {
@@ -124,6 +149,7 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
             centerTitle: true,
             backgroundColor: const Color(0xFF7B1E3A),
             actions: [
+              _botonModoEnigma(context),
               IconButton(
                 icon: const Icon(Icons.science),
                 tooltip: 'Laboratorio',
@@ -137,7 +163,12 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
               ),
             ],
           ),
-          body: const workerProfileView(embedded: true),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              const workerProfileView(embedded: true),
+            ],
+          ),
           endDrawer: _settingsDrawer(),
           bottomNavigationBar: _buildBottomBar(),
         ),

@@ -4,6 +4,7 @@ const express = require('express');
 const admin = require('firebase-admin');
 const cors = require('cors');
 const multer = require('multer');
+const { GoogleAuth } = require('google-auth-library');
 const { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
@@ -45,6 +46,44 @@ console.log('B2 config:', {
 });
 
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_BASE_URL = process.env.GROQ_BASE_URL ? process.env.GROQ_BASE_URL.replace(/\/$/, '') : '';
+const GROQ_MODEL = process.env.GROQ_MODEL || '';
+const VERTEX_PROJECT_ID = process.env.VERTEX_PROJECT_ID || serviceAccount.project_id || '';
+const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
+const VERTEX_MODEL = process.env.VERTEX_MODEL || '';
+
+function validarConfigGroq() {
+  const errores = [];
+
+  if (!GROQ_BASE_URL) {
+    errores.push('GROQ_BASE_URL');
+  }
+
+  if (!GROQ_MODEL) {
+    errores.push('GROQ_MODEL');
+  }
+
+  if (errores.length > 0) {
+    throw new Error(`Faltan variables obligatorias de Groq: ${errores.join(', ')}`);
+  }
+}
+
+validarConfigGroq();
+
+function validarConfigVertex() {
+  const errores = [];
+
+  if (!VERTEX_MODEL) {
+    errores.push('VERTEX_MODEL');
+  }
+
+  if (errores.length > 0) {
+    throw new Error(`Faltan variables obligatorias de Vertex: ${errores.join(', ')}`);
+  }
+}
+
+validarConfigVertex();
 
 const firebaseAuthUrl = (path) => {
   if (!FIREBASE_API_KEY) return '';
@@ -81,6 +120,50 @@ function nombreVisibleUsuario(doc) {
   return null;
 }
 
+function extraerTextoTranscripcionGroq(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  const texto = payload.text != null ? String(payload.text).trim() : '';
+  if (texto) return texto;
+
+  const segmentos = payload.segments;
+  if (!Array.isArray(segmentos)) return '';
+
+  return segmentos
+    .map((segmento) => {
+      if (!segmento || typeof segmento !== 'object') return '';
+      return segmento.text != null ? String(segmento.text).trim() : '';
+    })
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
+function extraerMensajeErrorGroq(body, statusCode) {
+  try {
+    const decoded = JSON.parse(body);
+    if (decoded && typeof decoded === 'object') {
+      if (typeof decoded.error === 'string' && decoded.error.trim()) {
+        return `Groq ${statusCode}: ${decoded.error.trim()}`;
+      }
+
+      const error = decoded.error;
+      if (error && typeof error === 'object') {
+        const mensaje = error.message ?? error.detail ?? error.code;
+        if (mensaje != null && String(mensaje).trim()) {
+          return `Groq ${statusCode}: ${String(mensaje).trim()}`;
+        }
+      }
+
+      if (typeof decoded.message === 'string' && decoded.message.trim()) {
+        return `Groq ${statusCode}: ${decoded.message.trim()}`;
+      }
+    }
+  } catch (_) {}
+
+  const texto = String(body ?? '').trim();
+  return texto ? `Groq ${statusCode}: ${texto}` : `Groq ${statusCode}`;
+}
+
 // =============================================================================
 // LLAMADAS DE VOZ (Agora token + Firestore + FCM): toda la logica de negocio aqui.
 // El cliente Flutter solo: motor RTC, permisos, UI y lectura Firestore.
@@ -99,14 +182,12 @@ const EST_LLAMADA = {
   BUSY: 'busy',
 };
 
-/** UID Agora uint32 estable: primeros 4 bytes de SHA-256(UID Firebase). Misma logica en Flutter. */
 function uidAgoraDesdeFirebaseUid(firebaseUid) {
   const buf = crypto.createHash('sha256').update(String(firebaseUid), 'utf8').digest();
   const u = buf.readUInt32BE(0);
   return u === 0 ? 1 : u;
 }
 
-/** Nombre de canal Agora (reglas Agora: longitud y caracteres). */
 function validarNombreCanal(canal) {
   const c = String(canal ?? '').trim();
   if (!c || c.length > 63) {
@@ -117,10 +198,6 @@ function validarNombreCanal(canal) {
   return c;
 }
 
-/**
- * Segundos hasta expiracion del privilegio en token (60..86400).
- * undefined/null -> 3600. Valores no finitos o <= 0 -> error (sin sustituir por 3600 en silencio).
- */
 function normalizarExpiraSegundos(val) {
   if (val === undefined || val === null) return 3600;
   const n = Number(val);
@@ -159,6 +236,61 @@ function construirTokenRtc(canal, firebaseUid, expiraEnSegundos) {
     privilegeExpiredTs,
   );
   return { token, uidAgora, privilegeExpiredTs, canal: c };
+}
+
+function extraerTextoVertex(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+
+  const textoDirecto = payload.text != null ? String(payload.text).trim() : '';
+  if (textoDirecto) return textoDirecto;
+
+  const respuesta = payload.answer != null ? String(payload.answer).trim() : '';
+  if (respuesta) return respuesta;
+
+  const candidates = payload.candidates;
+  if (!Array.isArray(candidates)) return '';
+
+  const buffer = [];
+  candidates.forEach((candidate) => {
+    if (!candidate || typeof candidate !== 'object') return;
+    const content = candidate.content;
+    if (!content || typeof content !== 'object') return;
+    const parts = content.parts;
+    if (!Array.isArray(parts)) return;
+
+    parts.forEach((part) => {
+      if (!part || typeof part !== 'object') return;
+      const texto = part.text != null ? String(part.text).trim() : '';
+      if (texto) buffer.push(texto);
+    });
+  });
+
+  return buffer.join(' ').trim();
+}
+
+function extraerMensajeErrorVertex(body, statusCode) {
+  try {
+    const decoded = JSON.parse(body);
+    if (decoded && typeof decoded === 'object') {
+      if (typeof decoded.error === 'string' && decoded.error.trim()) {
+        return `Vertex ${statusCode}: ${decoded.error.trim()}`;
+      }
+
+      const error = decoded.error;
+      if (error && typeof error === 'object') {
+        const mensaje = error.message ?? error.detail ?? error.code;
+        if (mensaje != null && String(mensaje).trim()) {
+          return `Vertex ${statusCode}: ${String(mensaje).trim()}`;
+        }
+      }
+
+      if (typeof decoded.message === 'string' && decoded.message.trim()) {
+        return `Vertex ${statusCode}: ${decoded.message.trim()}`;
+      }
+    }
+  } catch (_) {}
+
+  return `Vertex ${statusCode}: ${body.trim()}`;
 }
 
 /** Quita idLlamadaActiva en presencia de ambos participantes (Admin SDK). */
@@ -915,6 +1047,228 @@ app.post('/firebase/:coleccion/batch', async (req, res) => {
 // Estado del backend
 app.get('/status', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// --- Laboratorio (transcripcion por backend + Groq) ---
+
+function generarRespuestaLocal(prompt, systemInstruction) {
+  // Fallback local: respuestas de demostración para desarrollo
+  const respuestasDemo = {
+    'enigma': 'En el modo enigma, los desafíos se revelan gradualmente. Tu objetivo es descubrir la verdad oculta detrás de cada pista.',
+    'default': `Recibí tu pregunta: "${prompt}". En desarrollo local, esta es una respuesta de demostración. Conecta Vertex AI con los permisos adecuados para respuestas en tiempo real.`,
+  };
+  
+  const esEnigma = prompt.toLowerCase().includes('enigma');
+  return esEnigma ? respuestasDemo.enigma : respuestasDemo.default;
+}
+
+app.post('/laboratorio/vertex', authenticateToken, async (req, res) => {
+  try {
+    console.log('\n========== [VERTEX] NUEVA SOLICITUD ==========');
+    console.log('[VERTEX] UID:', req.firebaseUid);
+    console.log('[VERTEX] Body recibido:', JSON.stringify(req.body));
+    
+    const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
+    if (!prompt) {
+      console.log('[VERTEX] ❌ Prompt vacío');
+      return res.status(400).json({ error: 'Se requiere prompt' });
+    }
+    console.log('[VERTEX] ✓ Prompt:', prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''));
+
+    if (!VERTEX_PROJECT_ID) {
+      console.log('[VERTEX] ❌ Falta VERTEX_PROJECT_ID');
+      return res.status(500).json({ error: 'Falta VERTEX_PROJECT_ID o project_id en FIREBASE_SERVICE_ACCOUNT' });
+    }
+
+    const systemInstruction = typeof req.body?.systemInstruction === 'string' && req.body.systemInstruction.trim()
+      ? req.body.systemInstruction.trim()
+      : 'Eres el agente de modo enigma de Atlas. Responde en espanol, breve, claro y accionable.';
+
+    const temperature = typeof req.body?.temperature === 'number' ? req.body.temperature : 0.2;
+    const maxOutputTokens = typeof req.body?.maxOutputTokens === 'number' ? req.body.maxOutputTokens : 512;
+
+    console.log('[VERTEX] ✓ System Instruction cargada');
+    console.log('[VERTEX] ✓ Temperature:', temperature);
+    console.log('[VERTEX] ✓ MaxOutputTokens:', maxOutputTokens);
+
+    const auth = new GoogleAuth({
+      credentials: serviceAccount,
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    console.log('[VERTEX] ✓ GoogleAuth inicializado');
+    
+    const client = await auth.getClient();
+    console.log('[VERTEX] ✓ Client obtenido');
+    
+    const accessToken = await client.getAccessToken();
+    console.log('[VERTEX] ✓ Access token generado');
+    
+    const token = typeof accessToken === 'string' ? accessToken : accessToken?.token;
+
+    if (!token) {
+      console.log('[VERTEX] ❌ Token vacío');
+      return res.status(500).json({ error: 'No se pudo obtener un token de Vertex' });
+    }
+    console.log('[VERTEX] ✓ Token válido (length:', token.length, ')');
+
+    // Log de diagnóstico detallado
+    console.log('[VERTEX] ✓ Configuración:', {
+      project: VERTEX_PROJECT_ID,
+      location: VERTEX_LOCATION,
+      model: VERTEX_MODEL,
+      tokenLength: token?.length || 0,
+      serviceAccountEmail: serviceAccount?.client_email || 'unknown',
+    });
+
+    const endpoint = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
+    
+    console.log('[VERTEX] ✓ Endpoint:', endpoint);
+    console.log('[VERTEX] 🔄 Enviando solicitud a Vertex...');
+
+    const vertexResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ],
+        systemInstruction: {
+          parts: [{ text: systemInstruction }],
+        },
+        generationConfig: {
+          temperature,
+          maxOutputTokens,
+        },
+      }),
+    });
+
+    const responseText = await vertexResponse.text();
+    
+    console.log('[VERTEX] ✓ Respuesta recibida');
+    console.log('[VERTEX] ✓ Status:', vertexResponse.status);
+    console.log('[VERTEX] ✓ Headers:', Object.fromEntries(vertexResponse.headers));
+    
+    if (!vertexResponse.ok) {
+      console.log('[VERTEX] ⚠️  Respuesta no OK');
+      console.log('[VERTEX] ⚠️  Primer 1000 chars:', responseText.substring(0, 1000));
+    }
+
+    // 403: Permisos insuficientes
+    if (vertexResponse.status === 403) {
+      console.error('🚨 [VERTEX] 403: Permiso denegado', {
+        endpoint,
+        serviceAccount: serviceAccount?.client_email,
+        mensaje: responseText.substring(0, 500),
+      });
+      console.log('[VERTEX] ❌ Retornando 403');
+      return res.status(403).json({
+        error: 'Permiso denegado (403)',
+        details: JSON.parse(responseText),
+      });
+    }
+
+    // Otros errores
+    if (!vertexResponse.ok) {
+      const errorObj = (() => {
+        try { return JSON.parse(responseText); } catch (_) { return { message: responseText }; }
+      })();
+      
+      console.error(`[VERTEX] ❌ Error ${vertexResponse.status}:`, errorObj);
+      console.log('[VERTEX] Retornando error:', vertexResponse.status);
+      
+      return res.status(vertexResponse.status).json({
+        error: extraerMensajeErrorVertex(responseText, vertexResponse.status),
+        details: errorObj,
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = JSON.parse(responseText);
+      console.log('[VERTEX] ✓ Respuesta parseada');
+    } catch (err) {
+      console.error('[VERTEX] ❌ Error al parsear JSON:', err);
+      console.log('[VERTEX] Primer 500 chars del response:', responseText.substring(0, 500));
+      return res.status(502).json({ error: 'Respuesta invalida de Vertex' });
+    }
+
+    const textoExtraido = extraerTextoVertex(decoded);
+    console.log('[VERTEX] ✓ Texto extraído (length:', textoExtraido.length, ')');
+    console.log('[VERTEX] 🎉 Éxito - Retornando respuesta');
+    
+    res.json({
+      text: textoExtraido,
+      model: VERTEX_MODEL,
+      location: VERTEX_LOCATION,
+      projectId: VERTEX_PROJECT_ID,
+      fallback: false,
+    });
+    console.log('[VERTEX] ========== FIN SOLICITUD ==========\n');
+  } catch (err) {
+    console.error('❌ [VERTEX] Excepción:', err.message);
+    console.error('[VERTEX] Stack:', err.stack);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/laboratorio/transcribir', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ error: 'Falta GROQ_API_KEY' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibio archivo' });
+    }
+    if (typeof FormData === 'undefined' || typeof Blob === 'undefined') {
+      return res.status(500).json({ error: 'El runtime no soporta subida multipart hacia Groq' });
+    }
+
+    const formData = new FormData();
+    formData.append(
+      'file',
+      new Blob([req.file.buffer], { type: req.file.mimetype || 'application/octet-stream' }),
+      req.file.originalname || 'audio.wav',
+    );
+    formData.append('model', GROQ_MODEL);
+    formData.append('temperature', '0');
+    formData.append('response_format', 'verbose_json');
+
+    const groqResponse = await fetch(`${GROQ_BASE_URL}/audio/transcriptions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: formData,
+    });
+
+    const responseText = await groqResponse.text();
+    if (!groqResponse.ok) {
+      return res.status(groqResponse.status).json({
+        error: extraerMensajeErrorGroq(responseText, groqResponse.status),
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = JSON.parse(responseText);
+    } catch (err) {
+      return res.status(502).json({ error: 'Respuesta invalida de Groq' });
+    }
+
+    res.json({
+      text: extraerTextoTranscripcionGroq(decoded),
+      model: GROQ_MODEL,
+    });
+  } catch (err) {
+    console.error('laboratorio/transcribir', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Rutas Backblaze B2 ---

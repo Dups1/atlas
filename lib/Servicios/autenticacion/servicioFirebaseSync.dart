@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'autenticacionStorage.dart';
 import '../configBackend.dart';
+import '../automatizacion/servicioModoEnigma.dart';
 
 /// Sincroniza [FirebaseAuth] con el idToken HTTP (custom token desde el backend).
 class servicioFirebaseSync {
@@ -14,6 +15,7 @@ class servicioFirebaseSync {
     try {
       await FirebaseAuth.instance.signOut();
     } catch (_) {}
+    servicioModoEnigma.desactivarGlobal();
   }
 
   /// Llama a `POST /auth/custom-token` y hace signInWithCustomToken.

@@ -112,28 +112,30 @@ class servicioLlamadas extends ChangeNotifier {
       await servicioFirebaseSync.sincronizarConTokenGuardado();
     } catch (_) {}
 
-    await _mensajeria.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    if (!kIsWeb) {
+      await _mensajeria.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-    final ajustesNotificacion = await _mensajeria.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+      final ajustesNotificacion = await _mensajeria.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
 
-    final st = ajustesNotificacion.authorizationStatus;
-    if (st == AuthorizationStatus.authorized || st == AuthorizationStatus.provisional) {
-      final token = await _mensajeria.getToken();
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (token != null && uid != null) {
-        await _db.collection('tokens_llamadas').doc(uid).set({
-          'token': token,
-          'actualizado': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+      final st = ajustesNotificacion.authorizationStatus;
+      if (st == AuthorizationStatus.authorized || st == AuthorizationStatus.provisional) {
+        final token = await _mensajeria.getToken();
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (token != null && uid != null) {
+          await _db.collection('tokens_llamadas').doc(uid).set({
+            'token': token,
+            'actualizado': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
       }
     }
 

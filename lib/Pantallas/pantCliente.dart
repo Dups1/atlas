@@ -7,6 +7,7 @@ import '../Servicios/llamadas/servicioLlamadas.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
 import '../Servicios/trabajadores/servicioTrabajadores.dart';
 import '../Servicios/autenticacion/sesionService.dart';
+import '../widgets/alcanceModoEnigma.dart';
 import '../widgets/alcanceServicioLlamadas.dart';
 import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
@@ -77,6 +78,30 @@ class _pantallaClienteState extends State<pantallaCliente> {
         return nombre.contains(lower) || cat.contains(lower);
       }).toList();
     });
+  }
+
+  Widget _botonModoEnigma(BuildContext context) {
+    final modoEnigma = alcanceModoEnigma.of(context);
+    final color = modoEnigma.activo ? Colors.green : Colors.red;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: TextButton(
+        onPressed: modoEnigma.alternar,
+        style: TextButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Text(
+          'Modo enigma',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
   }
 
   Future<void> _promptCerrarSesion() async {
@@ -211,6 +236,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
             centerTitle: true,
             backgroundColor: Colors.black,
             actions: [
+              _botonModoEnigma(context),
               IconButton(
                 icon: const Icon(Icons.science),
                 tooltip: 'Laboratorio',
