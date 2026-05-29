@@ -17,7 +17,7 @@ import 'navegacionChat.dart';
 import 'pantMensajesCliente.dart';
 import 'pantPerfilCliente.dart';
 import 'pantPerfilTrabPublico.dart';
-import 'pantReservaCliente.dart';
+import 'pantCalendarioCliente.dart';
 import 'pantTrabajador.dart';
 
 class pantallaCliente extends StatefulWidget {
@@ -614,7 +614,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
   }
 
   Widget _buildBottomBar() {
-    const labels = ['Inicio', 'Mensajes', 'Reserva', 'Perfil'];
+    const labels = ['Inicio', 'Mensajes', 'Calendario', 'Perfil'];
     const icons = [
       Icons.home_outlined,
       Icons.message_outlined,
@@ -663,7 +663,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
                       if (index == 2) {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const pantallaReservaCliente(),
+                            builder: (_) => const pantallaCalendarioCliente(),
                           ),
                         );
                       }

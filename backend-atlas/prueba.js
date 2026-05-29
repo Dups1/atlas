@@ -950,6 +950,397 @@ app.post('/mensajes/conversaciones/:conversationId', authenticateToken, async (r
   }
 });
 
+// --- Reservaciones y relacion cliente-trabajador ---
+
+const ESTADO_TRABAJO = {
+  PENDIENTE: 'pendiente',
+  CONFIRMADO: 'confirmado',
+  EN_CURSO: 'en_curso',
+  COMPLETADO: 'completado',
+  CANCELADO: 'cancelado',
+};
+
+const ORDEN_ESTADOS_TRABAJO = [
+  ESTADO_TRABAJO.PENDIENTE,
+  ESTADO_TRABAJO.CONFIRMADO,
+  ESTADO_TRABAJO.EN_CURSO,
+  ESTADO_TRABAJO.COMPLETADO,
+];
+
+function normalizarEstadoTrabajo(valor) {
+  const v = String(valor ?? '').trim().toLowerCase();
+  return ORDEN_ESTADOS_TRABAJO.includes(v) || v === ESTADO_TRABAJO.CANCELADO ? v : null;
+}
+
+function parseMesQuery(valor) {
+  const raw = String(valor ?? '').trim();
+  if (!raw) return null;
+  const m = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+  return { year, month };
+}
+
+function serializarReservacion(doc) {
+  const data = doc.data() || {};
+  return {
+    id: doc.id,
+    ...data,
+    creado: tsToIso(data.creado),
+    actualizado: tsToIso(data.actualizado),
+    pagadoEn: tsToIso(data.pagadoEn),
+  };
+}
+
+// La relacion calificable existe solo si hay al menos una reservacion completada y pagada.
+async function existeRelacionCalificable(clienteUid, trabajadorUid) {
+  const snap = await db
+    .collection('reservaciones')
+    .where('clienteUid', '==', clienteUid)
+    .where('trabajadorUid', '==', trabajadorUid)
+    .where('estadoTrabajo', '==', ESTADO_TRABAJO.COMPLETADO)
+    .where('pagado', '==', true)
+    .limit(1)
+    .get();
+  return !snap.empty;
+}
+
+// El cliente crea una reservacion hacia un trabajador.
+app.post('/reservaciones', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const body = req.body || {};
+  const trabajadorUid = typeof body.trabajadorUid === 'string' ? body.trabajadorUid.trim() : '';
+  if (!trabajadorUid) {
+    return res.status(400).json({ error: 'trabajadorUid es obligatorio' });
+  }
+  if (trabajadorUid === meUid) {
+    return res.status(400).json({ error: 'No puedes reservarte a ti mismo' });
+  }
+
+  try {
+    const [yo, trabajador] = await Promise.all([
+      fetchUsuarioDoc(meUid),
+      fetchUsuarioDoc(trabajadorUid),
+    ]);
+    if (!yo) return res.status(404).json({ error: 'Tu usuario no existe en usuarios' });
+    if (!trabajador) return res.status(404).json({ error: 'Trabajador no encontrado' });
+    if (normalizeRol(yo.rol) !== 'cliente') {
+      return res.status(403).json({ error: 'Solo un cliente puede crear reservaciones' });
+    }
+    if (normalizeRol(trabajador.rol) !== 'trabajador') {
+      return res.status(403).json({ error: 'El destino no es un trabajador' });
+    }
+
+    const fecha = typeof body.fecha === 'string' ? body.fecha.trim() : '';
+    const metodoPago = body.pago != null ? String(body.pago).trim() : 'Efectivo';
+    const payload = {
+      clienteUid: meUid,
+      trabajadorUid,
+      clienteNombre: nombreVisibleUsuario(yo),
+      trabajadorNombre: nombreVisibleUsuario(trabajador),
+      fecha: fecha || null,
+      direccion: body.direccion != null ? String(body.direccion).trim() : '',
+      referencias: body.referencias != null ? String(body.referencias).trim() : '',
+      telefono: body.telefono != null ? String(body.telefono).trim() : '',
+      detalle: body.detalle != null ? String(body.detalle).trim() : '',
+      urgencia: body.urgencia != null ? String(body.urgencia).trim() : 'Normal',
+      metodoPago: metodoPago || 'Efectivo',
+      pago: metodoPago || 'Efectivo', // compatibilidad con clientes previos
+      estadoTrabajo: ESTADO_TRABAJO.PENDIENTE,
+      pagado: false,
+      pagadoEn: null,
+      creado: admin.firestore.FieldValue.serverTimestamp(),
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    const ref = await db.collection('reservaciones').add(payload);
+    res.status(201).json({ id: ref.id });
+  } catch (err) {
+    console.error('reservaciones POST', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Lista reservaciones del usuario autenticado para poblar calendario (cliente o trabajador).
+app.get('/reservaciones/mias', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const rolQuery = String(req.query.rol ?? '').trim().toLowerCase();
+  const mes = parseMesQuery(req.query.mes);
+  if (req.query.mes != null && !mes) {
+    return res.status(400).json({ error: 'mes invalido, usa formato YYYY-MM' });
+  }
+
+  try {
+    const meDoc = await fetchUsuarioDoc(meUid);
+    if (!meDoc) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const rolUsuario = normalizeRol(meDoc.rol);
+    const rol = rolQuery || rolUsuario;
+    if (rol !== 'cliente' && rol !== 'trabajador') {
+      return res.status(400).json({ error: 'rol invalido, usa cliente o trabajador' });
+    }
+    if (rol !== rolUsuario) {
+      return res.status(403).json({ error: 'No puedes consultar reservaciones de otro rol' });
+    }
+
+    const campo = rol === 'cliente' ? 'clienteUid' : 'trabajadorUid';
+    const snap = await db
+      .collection('reservaciones')
+      .where(campo, '==', meUid)
+      .orderBy('creado', 'desc')
+      .limit(200)
+      .get();
+
+    const items = snap.docs
+      .map(serializarReservacion)
+      .filter((item) => {
+        if (!mes) return true;
+        const fecha = item.fecha && typeof item.fecha === 'string' ? new Date(item.fecha) : null;
+        if (!fecha || Number.isNaN(fecha.getTime())) return false;
+        return fecha.getFullYear() === mes.year && fecha.getMonth() + 1 === mes.month;
+      });
+
+    res.json(items);
+  } catch (err) {
+    console.error('reservaciones/mias GET', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// El trabajador dueño actualiza el estado del trabajo.
+app.patch('/reservaciones/:id/estado-trabajo', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const id = String(req.params.id || '').trim();
+  const estadoNuevo = normalizarEstadoTrabajo(req.body?.estadoTrabajo);
+  if (!id) return res.status(400).json({ error: 'id de reservacion obligatorio' });
+  if (!estadoNuevo) {
+    return res.status(400).json({ error: 'estadoTrabajo invalido' });
+  }
+
+  try {
+    const meDoc = await fetchUsuarioDoc(meUid);
+    if (!meDoc) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (normalizeRol(meDoc.rol) !== 'trabajador') {
+      return res.status(403).json({ error: 'Solo un trabajador puede actualizar estado de trabajo' });
+    }
+
+    const ref = db.collection('reservaciones').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Reservacion no encontrada' });
+    const data = snap.data();
+    if (data.trabajadorUid !== meUid) {
+      return res.status(403).json({ error: 'Solo el trabajador dueño puede actualizar esta reservacion' });
+    }
+    const estadoActual = normalizarEstadoTrabajo(data.estadoTrabajo) || ESTADO_TRABAJO.PENDIENTE;
+    const idxActual = ORDEN_ESTADOS_TRABAJO.indexOf(estadoActual);
+    const idxNuevo = ORDEN_ESTADOS_TRABAJO.indexOf(estadoNuevo);
+    const transicionCancelada = estadoNuevo === ESTADO_TRABAJO.CANCELADO;
+
+    if (!transicionCancelada) {
+      if (idxNuevo < 0 || idxActual < 0) {
+        return res.status(409).json({ error: 'Transicion de estado invalida' });
+      }
+      if (idxNuevo < idxActual) {
+        return res.status(409).json({ error: 'No se permite retroceder estado de trabajo' });
+      }
+      if (idxNuevo - idxActual > 1) {
+        return res.status(409).json({ error: 'Debes avanzar estado de trabajo paso a paso' });
+      }
+    }
+
+    await ref.update({
+      estadoTrabajo: estadoNuevo,
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    const actualizado = await ref.get();
+    res.json(serializarReservacion(actualizado));
+  } catch (err) {
+    console.error('reservaciones estado-trabajo PATCH', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// El cliente dueño confirma pago una vez completado el trabajo.
+app.patch('/reservaciones/:id/confirmar-pago', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const id = String(req.params.id || '').trim();
+  if (!id) return res.status(400).json({ error: 'id de reservacion obligatorio' });
+
+  try {
+    const meDoc = await fetchUsuarioDoc(meUid);
+    if (!meDoc) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (normalizeRol(meDoc.rol) !== 'cliente') {
+      return res.status(403).json({ error: 'Solo un cliente puede confirmar pago' });
+    }
+
+    const ref = db.collection('reservaciones').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Reservacion no encontrada' });
+    const data = snap.data();
+    if (data.clienteUid !== meUid) {
+      return res.status(403).json({ error: 'Solo el cliente dueño puede confirmar pago' });
+    }
+    if (normalizarEstadoTrabajo(data.estadoTrabajo) !== ESTADO_TRABAJO.COMPLETADO) {
+      return res.status(409).json({ error: 'Solo puedes confirmar pago cuando el trabajo este completado' });
+    }
+    if (data.pagado === true) {
+      const ya = serializarReservacion(snap);
+      return res.json({ ...ya, pagoYaConfirmado: true });
+    }
+
+    await ref.update({
+      pagado: true,
+      pagadoEn: admin.firestore.FieldValue.serverTimestamp(),
+      actualizado: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    const actualizado = await ref.get();
+    res.json(serializarReservacion(actualizado));
+  } catch (err) {
+    console.error('reservaciones confirmar-pago PATCH', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Calificaciones de trabajadores ---
+
+function calificacionDocId(clienteUid, trabajadorUid) {
+  return `${clienteUid}_${trabajadorUid}`;
+}
+
+// Devuelve el valor saneado (multiplo de 0.5 entre 0.5 y 5) o null si es invalido.
+function normalizarEstrellas(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return null;
+  if (n < 0.5 || n > 5) return null;
+  if (Math.round(n * 2) !== n * 2) return null;
+  return Math.round(n * 2) / 2;
+}
+
+// Contexto para la UI del cliente: si puede calificar, su calificacion actual y el promedio del trabajador.
+app.get('/calificaciones/:trabajadorUid/contexto', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const trabajadorUid = String(req.params.trabajadorUid || '').trim();
+  if (!trabajadorUid) {
+    return res.status(400).json({ error: 'trabajadorUid es obligatorio' });
+  }
+
+  try {
+    const [meDoc, trabajador] = await Promise.all([fetchUsuarioDoc(meUid), fetchUsuarioDoc(trabajadorUid)]);
+    if (!meDoc) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!trabajador) return res.status(404).json({ error: 'Trabajador no encontrado' });
+
+    const esCliente = normalizeRol(meDoc.rol) === 'cliente';
+    const [puedeCalificar, miDoc] = await Promise.all([
+      esCliente ? existeRelacionCalificable(meUid, trabajadorUid) : Promise.resolve(false),
+      db.collection('calificaciones').doc(calificacionDocId(meUid, trabajadorUid)).get(),
+    ]);
+
+    const promedio = Number(trabajador.calificacion) || 0;
+    const total = Number(trabajador.numCalificaciones) || 0;
+    const miCalificacion = miDoc.exists ? (Number(miDoc.data().estrellas) || null) : null;
+
+    res.json({
+      puedeCalificar,
+      miCalificacion,
+      promedio,
+      total,
+      mensajeBloqueo: puedeCalificar
+        ? null
+        : 'Debes tener una reservacion completada y pagada con este trabajador',
+    });
+  } catch (err) {
+    console.error('calificaciones contexto GET', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// El cliente califica (o edita su calificacion) a un trabajador con el que tiene reservacion completada y pagada.
+app.post('/calificaciones', authenticateToken, async (req, res) => {
+  const meUid = req.firebaseUid;
+  const body = req.body || {};
+  const trabajadorUid = typeof body.trabajadorUid === 'string' ? body.trabajadorUid.trim() : '';
+  const estrellas = normalizarEstrellas(body.estrellas);
+  if (!trabajadorUid) {
+    return res.status(400).json({ error: 'trabajadorUid es obligatorio' });
+  }
+  if (estrellas === null) {
+    return res.status(400).json({ error: 'estrellas debe ser multiplo de 0.5 entre 0.5 y 5' });
+  }
+  if (trabajadorUid === meUid) {
+    return res.status(400).json({ error: 'No puedes calificarte a ti mismo' });
+  }
+
+  try {
+    const [yo, trabajador] = await Promise.all([
+      fetchUsuarioDoc(meUid),
+      fetchUsuarioDoc(trabajadorUid),
+    ]);
+    if (!yo) return res.status(404).json({ error: 'Tu usuario no existe en usuarios' });
+    if (!trabajador) return res.status(404).json({ error: 'Trabajador no encontrado' });
+    if (normalizeRol(yo.rol) !== 'cliente') {
+      return res.status(403).json({ error: 'Solo un cliente puede calificar' });
+    }
+    if (normalizeRol(trabajador.rol) !== 'trabajador') {
+      return res.status(403).json({ error: 'El destino no es un trabajador' });
+    }
+
+    const tieneRelacion = await existeRelacionCalificable(meUid, trabajadorUid);
+    if (!tieneRelacion) {
+      return res.status(403).json({
+        error: 'Debes tener una reservacion completada y pagada con este trabajador para calificarlo',
+      });
+    }
+
+    const califRef = db.collection('calificaciones').doc(calificacionDocId(meUid, trabajadorUid));
+    const trabajadorRef = db.collection('usuarios').doc(trabajadorUid);
+
+    const resultado = await db.runTransaction(async (t) => {
+      const [califSnap, trabajadorSnap] = await Promise.all([t.get(califRef), t.get(trabajadorRef)]);
+      const tData = trabajadorSnap.exists ? trabajadorSnap.data() : {};
+
+      let suma = Number(tData.sumaCalificaciones);
+      let num = Number(tData.numCalificaciones);
+      if (!Number.isFinite(suma)) suma = 0;
+      if (!Number.isFinite(num)) num = 0;
+
+      const anterior = califSnap.exists ? Number(califSnap.data().estrellas) : null;
+      if (anterior != null && Number.isFinite(anterior)) {
+        suma = suma - anterior + estrellas;
+      } else {
+        suma = suma + estrellas;
+        num = num + 1;
+      }
+
+      const promedio = num > 0 ? Math.round((suma / num) * 10) / 10 : 0;
+
+      t.set(
+        califRef,
+        {
+          clienteUid: meUid,
+          trabajadorUid,
+          estrellas,
+          actualizado: admin.firestore.FieldValue.serverTimestamp(),
+          ...(califSnap.exists ? {} : { creado: admin.firestore.FieldValue.serverTimestamp() }),
+        },
+        { merge: true },
+      );
+
+      t.set(
+        trabajadorRef,
+        { sumaCalificaciones: suma, numCalificaciones: num, calificacion: promedio },
+        { merge: true },
+      );
+
+      return { promedio, total: num, miCalificacion: estrellas };
+    });
+
+    res.status(200).json(resultado);
+  } catch (err) {
+    console.error('calificaciones POST', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Registro de usuario por correo y password
 app.post('/auth/register', async (req, res) => {
   const { email, password, rol = 'cliente', categoria, subcategoria, nombre } = req.body;

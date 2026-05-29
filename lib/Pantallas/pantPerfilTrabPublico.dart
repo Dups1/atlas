@@ -1,12 +1,80 @@
 import 'package:flutter/material.dart';
 
+import '../Servicios/calificaciones/servicioCalificaciones.dart';
 import 'navegacionChat.dart';
 import 'pantReservaCliente.dart';
 
-class pantallaPerfilTrabajadorPublico extends StatelessWidget {
+class pantallaPerfilTrabajadorPublico extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const pantallaPerfilTrabajadorPublico({super.key, required this.data});
+
+  @override
+  State<pantallaPerfilTrabajadorPublico> createState() =>
+      _pantallaPerfilTrabajadorPublicoState();
+}
+
+class _pantallaPerfilTrabajadorPublicoState
+    extends State<pantallaPerfilTrabajadorPublico> {
+  final servicioCalificaciones _calificaciones = servicioCalificaciones();
+
+  contextoCalificacion? _contexto;
+  bool _cargandoContexto = true;
+  bool _enviandoCalificacion = false;
+
+  Map<String, dynamic> get data => widget.data;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarContexto();
+  }
+
+  Future<void> _cargarContexto() async {
+    final uid = uidDesdeMapaUsuario(data);
+    if (uid.isEmpty) {
+      setState(() => _cargandoContexto = false);
+      return;
+    }
+    setState(() => _cargandoContexto = true);
+    try {
+      final ctx = await _calificaciones.obtenerContexto(uid);
+      if (!mounted) return;
+      setState(() {
+        _contexto = ctx;
+        _cargandoContexto = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _cargandoContexto = false);
+    }
+  }
+
+  Future<void> _enviarCalificacion(double estrellas) async {
+    final uid = uidDesdeMapaUsuario(data);
+    if (uid.isEmpty) return;
+    setState(() => _enviandoCalificacion = true);
+    try {
+      final ctx = await _calificaciones.calificar(
+        trabajadorUid: uid,
+        estrellas: estrellas,
+      );
+      if (!mounted) return;
+      setState(() {
+        _contexto = ctx;
+        _enviandoCalificacion = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Calificaste con ${estrellas.toStringAsFixed(1)} estrellas')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _enviandoCalificacion = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo calificar: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +84,8 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
     final subcategoria = (data['subcategoria'] ?? 'Sin subcategoria')
         .toString();
     final descripcion = (data['descripcion'] ?? 'Sin descripcion').toString();
-    final rating =
-        double.tryParse((data['calificacion'] ?? '4.0').toString()) ?? 4.0;
+    final rating = _contexto?.promedio ??
+        (double.tryParse((data['calificacion'] ?? '4.0').toString()) ?? 4.0);
     final galeriaRaw = data['galeria'];
     final galeria = galeriaRaw is List
         ? galeriaRaw
@@ -77,16 +145,7 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        ...List.generate(
-                          5,
-                          (i) => Icon(
-                            i < rating.round().clamp(0, 5)
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            color: const Color(0xFFF59E0B),
-                            size: 18,
-                          ),
-                        ),
+                        ..._estrellasLectura(rating, 18),
                         const SizedBox(width: 6),
                         Text(
                           rating.toStringAsFixed(1),
@@ -95,6 +154,16 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        if ((_contexto?.total ?? 0) > 0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '(${_contexto!.total})',
+                            style: TextStyle(
+                              color: Colors.blueGrey.shade500,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -195,6 +264,8 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              _panelCard(child: _panelCalificacion()),
               const SizedBox(height: 14),
               Row(
                 children: [
@@ -234,12 +305,18 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(46),
                       ),
-                      onPressed: () {
-                        Navigator.of(context).push(
+                      onPressed: () async {
+                        await Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const pantallaReservaCliente(),
+                            builder: (_) => pantallaReservaCliente(
+                              trabajadorUid: uidDesdeMapaUsuario(data),
+                              trabajadorNombre: nombre,
+                              categoria: categoria,
+                              subcategoria: subcategoria,
+                            ),
                           ),
                         );
+                        if (mounted) _cargarContexto();
                       },
                       icon: const Icon(Icons.calendar_month_outlined),
                       label: const Text('Reservar'),
@@ -251,6 +328,116 @@ class pantallaPerfilTrabajadorPublico extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  List<Widget> _estrellasLectura(double valor, double size) {
+    return List.generate(5, (i) {
+      final llena = valor >= i + 1;
+      final media = !llena && valor >= i + 0.5;
+      return Icon(
+        llena
+            ? Icons.star_rounded
+            : media
+                ? Icons.star_half_rounded
+                : Icons.star_outline_rounded,
+        color: const Color(0xFFF59E0B),
+        size: size,
+      );
+    });
+  }
+
+  Widget _panelCalificacion() {
+    if (_cargandoContexto) {
+      return Row(
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Cargando calificacion...',
+            style: TextStyle(color: Colors.blueGrey.shade700),
+          ),
+        ],
+      );
+    }
+
+    final ctx = _contexto;
+    final puede = ctx?.puedeCalificar ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _tituloSeccion('Califica a este trabajador'),
+        const SizedBox(height: 8),
+        if (!puede)
+          Text(
+            ctx?.mensajeBloqueo?.isNotEmpty == true
+                ? ctx!.mensajeBloqueo!
+                : 'Debes tener un trabajo completado y pagado con este trabajador.',
+            style: TextStyle(color: Colors.blueGrey.shade700, height: 1.4),
+          )
+        else ...[
+          Text(
+            ctx?.miCalificacion != null
+                ? 'Tu calificacion: ${ctx!.miCalificacion!.toStringAsFixed(1)} (toca para cambiarla)'
+                : 'Toca las estrellas para calificar (media estrella permitida)',
+            style: TextStyle(color: Colors.blueGrey.shade700),
+          ),
+          const SizedBox(height: 8),
+          _selectorEstrellas(
+            valorActual: ctx?.miCalificacion ?? 0,
+            habilitado: !_enviandoCalificacion,
+            onSeleccion: _enviarCalificacion,
+          ),
+          if (_enviandoCalificacion)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _selectorEstrellas({
+    required double valorActual,
+    required bool habilitado,
+    required ValueChanged<double> onSeleccion,
+  }) {
+    const double tamano = 38;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        final llena = valorActual >= i + 1;
+        final media = !llena && valorActual >= i + 0.5;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: habilitado
+              ? (detalle) {
+                  final mitadIzquierda = detalle.localPosition.dx < tamano / 2;
+                  final valor = i + (mitadIzquierda ? 0.5 : 1.0);
+                  onSeleccion(valor.toDouble());
+                }
+              : null,
+          child: SizedBox(
+            width: tamano,
+            height: tamano,
+            child: Icon(
+              llena
+                  ? Icons.star_rounded
+                  : media
+                      ? Icons.star_half_rounded
+                      : Icons.star_outline_rounded,
+              color: const Color(0xFFF59E0B),
+              size: tamano,
+            ),
+          ),
+        );
+      }),
     );
   }
 

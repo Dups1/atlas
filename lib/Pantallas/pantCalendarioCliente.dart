@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../Servicios/reservaciones/servicioReservaciones.dart';
 
-class pantallaCalendarioTrabajador extends StatefulWidget {
-  const pantallaCalendarioTrabajador({super.key});
+class pantallaCalendarioCliente extends StatefulWidget {
+  const pantallaCalendarioCliente({super.key});
 
   @override
-  State<pantallaCalendarioTrabajador> createState() =>
-      _pantallaCalendarioTrabajadorState();
+  State<pantallaCalendarioCliente> createState() => _pantallaCalendarioClienteState();
 }
 
-class _pantallaCalendarioTrabajadorState
-    extends State<pantallaCalendarioTrabajador> {
+class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
   final servicioReservaciones _reservaciones = servicioReservaciones();
   late DateTime _mesActual;
   late DateTime _diaSeleccionado;
@@ -28,19 +26,19 @@ class _pantallaCalendarioTrabajadorState
   }
 
   List<reservacionRemota> get _reservasDia {
-    return _reservasMes
-        .where((r) => _mismoDia(r.fecha, _diaSeleccionado))
-        .toList()
+    return _reservasMes.where((r) => _mismoDia(r.fecha, _diaSeleccionado)).toList()
       ..sort((a, b) => (a.fecha ?? DateTime(2000)).compareTo(b.fecha ?? DateTime(2000)));
+  }
+
+  bool _mismoDia(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   Future<void> _cargarMes() async {
     setState(() => _cargando = true);
     try {
-      final data = await _reservaciones.listarMias(
-        rol: 'trabajador',
-        mes: _mesActual,
-      );
+      final data = await _reservaciones.listarMias(rol: 'cliente', mes: _mesActual);
       if (!mounted) return;
       setState(() {
         _reservasMes = data;
@@ -55,11 +53,6 @@ class _pantallaCalendarioTrabajadorState
     }
   }
 
-  bool _mismoDia(DateTime? a, DateTime b) {
-    if (a == null) return false;
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,7 +62,7 @@ class _pantallaCalendarioTrabajadorState
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Calendario de servicios'),
+        title: const Text('Mis reservas'),
         actions: [
           IconButton(
             tooltip: 'Recargar',
@@ -114,9 +107,7 @@ class _pantallaCalendarioTrabajadorState
           children: [
             IconButton.filledTonal(
               onPressed: () {
-                setState(() {
-                  _mesActual = DateTime(_mesActual.year, _mesActual.month - 1, 1);
-                });
+                setState(() => _mesActual = DateTime(_mesActual.year, _mesActual.month - 1, 1));
                 _cargarMes();
               },
               icon: const Icon(Icons.chevron_left),
@@ -130,9 +121,7 @@ class _pantallaCalendarioTrabajadorState
             ),
             IconButton.filledTonal(
               onPressed: () {
-                setState(() {
-                  _mesActual = DateTime(_mesActual.year, _mesActual.month + 1, 1);
-                });
+                setState(() => _mesActual = DateTime(_mesActual.year, _mesActual.month + 1, 1));
                 _cargarMes();
               },
               icon: const Icon(Icons.chevron_right),
@@ -268,7 +257,7 @@ class _pantallaCalendarioTrabajadorState
           children: [
             ListTile(
               title: const Text(
-                'Agenda del dia',
+                'Reservas del dia',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(title),
@@ -292,16 +281,33 @@ class _pantallaCalendarioTrabajadorState
                         final hora = r.fecha == null
                             ? '--:--'
                             : '${r.fecha!.hour.toString().padLeft(2, '0')}:${r.fecha!.minute.toString().padLeft(2, '0')}';
+                        final puedeConfirmarPago =
+                            r.estadoTrabajo == estadosTrabajo.completado && !r.pagado;
                         return Card(
                           child: ListTile(
                             title: Text(
-                              r.clienteNombre,
+                              r.trabajadorNombre,
                               style: const TextStyle(fontWeight: FontWeight.w700),
                             ),
-                            subtitle: Text('${r.detalle.isEmpty ? 'Servicio' : r.detalle}\n$hora'),
+                            subtitle: Text(
+                              '${r.detalle.isEmpty ? 'Servicio' : r.detalle}\n$hora\nPago: ${r.metodoPago}',
+                            ),
                             isThreeLine: true,
-                            trailing: _chipEstado(r.estadoTrabajo),
-                            onTap: () => _abrirDetalle(r),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _chipEstado(r.estadoTrabajo),
+                                const SizedBox(height: 4),
+                                Text(
+                                  r.pagado ? 'Pagado' : 'Sin pagar',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: r.pagado ? Colors.green.shade700 : Colors.orange.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            onTap: puedeConfirmarPago ? () => _confirmarPago(r) : null,
                           ),
                         );
                       },
@@ -313,93 +319,41 @@ class _pantallaCalendarioTrabajadorState
     );
   }
 
-  Future<void> _abrirDetalle(reservacionRemota reserva) async {
-    String estado = reserva.estadoTrabajo;
-    bool guardando = false;
-    await showModalBottomSheet<void>(
+  Future<void> _confirmarPago(reservacionRemota reserva) async {
+    final ok = await showDialog<bool>(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModal) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  4,
-                  16,
-                  16 + MediaQuery.of(ctx).viewInsets.bottom,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(reserva.clienteNombre, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
-                    const SizedBox(height: 6),
-                    Text(reserva.detalle.isEmpty ? 'Sin detalle' : reserva.detalle),
-                    const SizedBox(height: 4),
-                    Text('Metodo pago: ${reserva.metodoPago}'),
-                    Text('Pago confirmado: ${reserva.pagado ? 'Si' : 'No'}'),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: estado,
-                      decoration: const InputDecoration(
-                        labelText: 'Estado trabajo',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: estadosTrabajo.values
-                          .map((e) => DropdownMenuItem(value: e, child: Text(_labelEstado(e))))
-                          .toList(),
-                      onChanged: guardando
-                          ? null
-                          : (v) {
-                              if (v != null) setModal(() => estado = v);
-                            },
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: guardando || estado == reserva.estadoTrabajo
-                          ? null
-                          : () async {
-                              setModal(() => guardando = true);
-                              try {
-                                await _reservaciones.actualizarEstadoTrabajo(
-                                  reservacionId: reserva.id,
-                                  estadoTrabajo: estado,
-                                );
-                                if (!mounted || !ctx.mounted) return;
-                                Navigator.of(ctx).pop();
-                                await _cargarMes();
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Estado de trabajo actualizado')),
-                                );
-                              } catch (e) {
-                                if (!mounted || !ctx.mounted) return;
-                                setModal(() => guardando = false);
-                                ScaffoldMessenger.of(
-                                  context,
-                                ).showSnackBar(SnackBar(content: Text('No se pudo actualizar: $e')));
-                              }
-                            },
-                      icon: guardando
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_outlined),
-                      label: Text(guardando ? 'Guardando...' : 'Guardar'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmar pago'),
+        content: Text(
+          'Vas a confirmar el pago de la reserva con ${reserva.trabajadorNombre}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
     );
+    if (ok != true) return;
+    try {
+      await _reservaciones.confirmarPago(reservacionId: reserva.id);
+      if (!mounted) return;
+      await _cargarMes();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pago confirmado, ya puedes calificar cuando aplique')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo confirmar pago: $e')));
+    }
   }
 
   Widget _chipEstado(String estado) {

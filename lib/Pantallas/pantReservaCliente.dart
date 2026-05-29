@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../Servicios/ia/servicioRellenoAgente.dart';
+import '../Servicios/reservaciones/servicioReservaciones.dart';
 
 class pantallaReservaCliente extends StatefulWidget {
-  const pantallaReservaCliente({super.key});
+  final String? trabajadorUid;
+  final String? trabajadorNombre;
+  final String? categoria;
+  final String? subcategoria;
+
+  const pantallaReservaCliente({
+    super.key,
+    this.trabajadorUid,
+    this.trabajadorNombre,
+    this.categoria,
+    this.subcategoria,
+  });
 
   @override
   State<pantallaReservaCliente> createState() => _pantallaReservaClienteState();
@@ -23,6 +35,7 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   bool _loading = false;
 
   final _relleno = servicioRellenoAgente();
+  final servicioReservaciones _reservaciones = servicioReservaciones();
 
   @override
   void initState() {
@@ -88,14 +101,14 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
                 padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Trabajador: Samuel Ruiz', style: TextStyle(fontWeight: FontWeight.w600)),
-                    SizedBox(height: 6),
-                    Text('Categoria: Instalaciones'),
-                    Text('Subcategoria: Montaje IoT'),
-                    SizedBox(height: 6),
-                    Text('Precio estimado: MXN 700 - 1200'),
-                    Text('Duracion estimada: 2 - 3 horas'),
+                  children: [
+                    Text(
+                      'Trabajador: ${widget.trabajadorNombre ?? 'Sin seleccionar'}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    Text('Categoria: ${widget.categoria ?? 'Sin categoria'}'),
+                    Text('Subcategoria: ${widget.subcategoria ?? 'Sin subcategoria'}'),
                   ],
                 ),
               ),
@@ -291,6 +304,15 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   }
 
   Future<void> _confirmarReserva() async {
+    final trabajadorUid = widget.trabajadorUid?.trim() ?? '';
+    if (trabajadorUid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Elige un trabajador desde Inicio para reservar'),
+        ),
+      );
+      return;
+    }
     if (_fechaSeleccionada == null || _horaSeleccionada == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selecciona fecha y hora')),
@@ -310,13 +332,38 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
       return;
     }
 
-    setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reserva creada con estado pendiente')),
+    final fecha = DateTime(
+      _fechaSeleccionada!.year,
+      _fechaSeleccionada!.month,
+      _fechaSeleccionada!.day,
+      _horaSeleccionada!.hour,
+      _horaSeleccionada!.minute,
     );
-    Navigator.of(context).pop();
+
+    setState(() => _loading = true);
+    try {
+      await _reservaciones.crearReservacion(
+        trabajadorUid: trabajadorUid,
+        fecha: fecha,
+        direccion: _direccionController.text.trim(),
+        referencias: _referenciasController.text.trim(),
+        telefono: _telefonoController.text.trim(),
+        detalle: _detalleController.text.trim(),
+        urgencia: _urgencia,
+        pago: _pago,
+      );
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reserva creada con estado pendiente')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo crear la reserva: $e')),
+      );
+    }
   }
 }
