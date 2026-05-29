@@ -50,7 +50,8 @@ class conversacionRemota {
   }
 
   factory conversacionRemota.fromJson(Map<String, dynamic> j) {
-    final parts = (j['participantes'] as List<dynamic>?)
+    final parts =
+        (j['participantes'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .toList() ??
         <String>[];
@@ -72,12 +73,15 @@ class conversacionRemota {
     return DateTime.tryParse(s);
   }
 
-  factory conversacionRemota.fromFirestore(DocumentSnapshot<Map<String, dynamic>> d) {
+  factory conversacionRemota.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> d,
+  ) {
     final m = d.data();
     if (m == null) {
       return conversacionRemota(id: d.id, participantes: const []);
     }
-    final parts = (m['participantes'] as List<dynamic>?)
+    final parts =
+        (m['participantes'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .toList() ??
         <String>[];
@@ -117,7 +121,9 @@ class mensajeRemoto {
     final createdRaw = j['createdAt'];
     DateTime created;
     if (createdRaw is String) {
-      created = DateTime.tryParse(createdRaw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      created =
+          DateTime.tryParse(createdRaw) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
     } else {
       created = DateTime.fromMillisecondsSinceEpoch(0);
     }
@@ -130,7 +136,9 @@ class mensajeRemoto {
     );
   }
 
-  factory mensajeRemoto.fromFirestore(DocumentSnapshot<Map<String, dynamic>> d) {
+  factory mensajeRemoto.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> d,
+  ) {
     final m = d.data() ?? <String, dynamic>{};
     DateTime createdAt = DateTime.fromMillisecondsSinceEpoch(0);
     final c = m['createdAt'];
@@ -150,10 +158,14 @@ class servicioMensajes {
   final String baseUrl;
   final autenticacionStorage _storage = autenticacionStorage();
 
-  servicioMensajes({String? baseUrl}) : baseUrl = baseUrl ?? configBackend.urlBase;
+  servicioMensajes({String? baseUrl})
+    : baseUrl = baseUrl ?? configBackend.urlBase;
 
   /// `conversationId` del backend: dos UIDs ordenados unidos por un solo `_`.
-  static String? otroUidDesdeConversationId(String conversationId, String miUid) {
+  static String? otroUidDesdeConversationId(
+    String conversationId,
+    String miUid,
+  ) {
     final parts = conversationId.split('_');
     if (parts.length != 2) return null;
     final a = parts[0];
@@ -177,9 +189,16 @@ class servicioMensajes {
     return FirebaseFirestore.instance
         .collection('conversaciones')
         .where('participantes', arrayContains: miUid)
-        .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(conversacionRemota.fromFirestore).toList());
+        .map((s) {
+          final items = s.docs.map(conversacionRemota.fromFirestore).toList();
+          items.sort((a, b) {
+            final aMs = a.updatedAt?.millisecondsSinceEpoch ?? 0;
+            final bMs = b.updatedAt?.millisecondsSinceEpoch ?? 0;
+            return bMs.compareTo(aMs);
+          });
+          return items;
+        });
   }
 
   Stream<List<mensajeRemoto>> streamMensajes(String conversationId) {
@@ -194,25 +213,35 @@ class servicioMensajes {
 
   Future<List<conversacionRemota>> fetchConversaciones() async {
     final headers = await _headersAuth();
-    final r = await http.get(Uri.parse('$baseUrl/mensajes/conversaciones'), headers: headers);
+    final r = await http.get(
+      Uri.parse('$baseUrl/mensajes/conversaciones'),
+      headers: headers,
+    );
     if (r.statusCode != 200) {
       throw Exception('Error ${r.statusCode}: ${r.body}');
     }
     final list = jsonDecode(r.body) as List<dynamic>;
-    return list.map((e) => conversacionRemota.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => conversacionRemota.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<List<mensajeRemoto>> fetchMensajes(String conversationId, {int limit = 100}) async {
+  Future<List<mensajeRemoto>> fetchMensajes(
+    String conversationId, {
+    int limit = 100,
+  }) async {
     final headers = await _headersAuth();
-    final uri = Uri.parse('$baseUrl/mensajes/conversaciones/$conversationId/mensajes').replace(
-      queryParameters: {'limit': '$limit'},
-    );
+    final uri = Uri.parse(
+      '$baseUrl/mensajes/conversaciones/$conversationId/mensajes',
+    ).replace(queryParameters: {'limit': '$limit'});
     final r = await http.get(uri, headers: headers);
     if (r.statusCode != 200) {
       throw Exception('Error ${r.statusCode}: ${r.body}');
     }
     final list = jsonDecode(r.body) as List<dynamic>;
-    return list.map((e) => mensajeRemoto.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => mensajeRemoto.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> enviarMensaje(String conversationId, String texto) async {

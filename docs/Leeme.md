@@ -17,7 +17,7 @@
 Para que la geolocalizacion en navegador funcione con origen seguro, arranca el servidor web ligado a `localhost`:
 
 ```bash
-flutter run -d web-server --web-hostname localhost --web-port 8080
+flutter run -d web-server --web-hostname localhost --web-port 8090
 ```
 
 #Abre la URL que muestre Flutter, por ejemplo `http://localhost:8080`.

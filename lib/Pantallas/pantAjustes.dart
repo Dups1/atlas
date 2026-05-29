@@ -332,7 +332,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
                         ),
                       ),
                       child: const Text(
-                        'Web: entra solo con http://localhost:PUERTO (origen seguro). Arranca con la config de VS Code "atlas web (localhost)" o scripts/runWebLocalhost.sh.',
+                        'Web: entra solo con http://localhost:PUERTO (origen seguro). Arranca con la config de VS Code "Fixi web (localhost)" o scripts/runWebLocalhost.sh.',
                         style: TextStyle(fontSize: 13),
                       ),
                     ),
@@ -386,7 +386,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
               titulo: 'Informacion de red',
               icon: Icons.wifi_tethering_outlined,
               child: Text(
-                'WiFi: Atlas WiFi - Latencia 18 ms',
+                'WiFi: Fixi WiFi - Latencia 18 ms',
                 style: TextStyle(color: Colors.blueGrey.shade700),
               ),
             ),
@@ -496,7 +496,7 @@ class vistaAcerca extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Atlas 2026',
+                    'Fixi 2026',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),

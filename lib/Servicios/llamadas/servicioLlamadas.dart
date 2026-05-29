@@ -36,7 +36,8 @@ class servicioLlamadas extends ChangeNotifier {
   final FirebaseMessaging _mensajeria = FirebaseMessaging.instance;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subEntrantes;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subDocumentoLlamada;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _subDocumentoLlamada;
   StreamSubscription<RemoteMessage>? _subMensajeForeground;
   Timer? _temporizadorTimbre;
 
@@ -47,9 +48,11 @@ class servicioLlamadas extends ChangeNotifier {
   String? _canalActual;
   bool _soportaNativo = false;
 
-  static bool get soportaLlamadasVozNativo => motorAgoraRtc.soportaLlamadasVozNativo;
+  static bool get soportaLlamadasVozNativo =>
+      motorAgoraRtc.soportaLlamadasVozNativo;
 
-  static int uidAgoraDesdeUid(String firebaseUid) => utilidadUidAgora.desdeFirebaseUid(firebaseUid);
+  static int uidAgoraDesdeUid(String firebaseUid) =>
+      utilidadUidAgora.desdeFirebaseUid(firebaseUid);
 
   void _ponerUi(estadoUiLlamada nuevo) {
     _ui = nuevo;
@@ -61,42 +64,49 @@ class servicioLlamadas extends ChangeNotifier {
   }
 
   void _alUnionCanal() {
-    _ponerUi(_ui.copiar(
-      enCanalAgora: true,
-      etiquetaConexion: 'unido_canal',
-      motorRtcListo: true,
-    ));
+    _ponerUi(
+      _ui.copiar(
+        enCanalAgora: true,
+        etiquetaConexion: 'unido_canal',
+        motorRtcListo: true,
+      ),
+    );
   }
 
   void _alSalirCanal() {
-    _ponerUi(_ui.copiar(
-      enCanalAgora: false,
-      remotoEnCanal: false,
-      limpiarUidRemoto: true,
-      etiquetaConexion: 'fuera_canal',
-    ));
+    _ponerUi(
+      _ui.copiar(
+        enCanalAgora: false,
+        remotoEnCanal: false,
+        limpiarUidRemoto: true,
+        etiquetaConexion: 'fuera_canal',
+      ),
+    );
   }
 
   void _alUsuarioRemoto(bool enCanal, int? uidRemoto) {
-    _ponerUi(_ui.copiar(
-      remotoEnCanal: enCanal,
-      uidRemotoAgora: uidRemoto,
-      limpiarUidRemoto: !enCanal,
-    ));
+    _ponerUi(
+      _ui.copiar(
+        remotoEnCanal: enCanal,
+        uidRemotoAgora: uidRemoto,
+        limpiarUidRemoto: !enCanal,
+      ),
+    );
   }
 
   void _alEtiquetaConexion(String etiqueta) {
-    _ponerUi(_ui.copiar(
-      etiquetaConexion: etiqueta,
-      motorRtcListo: _motorRtc.inicializado,
-    ));
+    _ponerUi(
+      _ui.copiar(
+        etiquetaConexion: etiqueta,
+        motorRtcListo: _motorRtc.inicializado,
+      ),
+    );
   }
 
   void _alVolumenHabla({required bool local, required bool remoto}) {
-    _ponerUi(_ui.copiar(
-      indicadorHablaLocal: local,
-      indicadorHablaRemoto: remoto,
-    ));
+    _ponerUi(
+      _ui.copiar(indicadorHablaLocal: local, indicadorHablaRemoto: remoto),
+    );
   }
 
   void _alErrorMotor(String mensaje) {
@@ -127,7 +137,8 @@ class servicioLlamadas extends ChangeNotifier {
       );
 
       final st = ajustesNotificacion.authorizationStatus;
-      if (st == AuthorizationStatus.authorized || st == AuthorizationStatus.provisional) {
+      if (st == AuthorizationStatus.authorized ||
+          st == AuthorizationStatus.provisional) {
         final token = await _mensajeria.getToken();
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (token != null && uid != null) {
@@ -140,7 +151,9 @@ class servicioLlamadas extends ChangeNotifier {
     }
 
     await _subMensajeForeground?.cancel();
-    _subMensajeForeground = FirebaseMessaging.onMessage.listen((RemoteMessage m) {
+    _subMensajeForeground = FirebaseMessaging.onMessage.listen((
+      RemoteMessage m,
+    ) {
       final tipo = m.data['tipo'];
       if (tipo == 'llamada_entrante') {
         _ponerError(null);
@@ -155,28 +168,51 @@ class servicioLlamadas extends ChangeNotifier {
     _subEntrantes = _db
         .collection('llamadas')
         .where('idReceptor', isEqualTo: miUid)
-        .where('estado', isEqualTo: EstadoLlamadaFirebase.timbrando.claveFirestore)
-        .where('activa', isEqualTo: true)
-        .limit(1)
+        .limit(40)
         .snapshots()
-        .listen((snap) {
-      if (snap.docs.isEmpty) {
-        _ponerUi(_ui.copiar(limpiarEntrante: true));
-        return;
-      }
-      final doc = snap.docs.first;
-      final modelo = llamadaModelo.fromFirestore(doc);
-      if (_ui.llamadaActiva != null && _ui.llamadaActiva!.idLlamada == modelo.idLlamada) return;
-      _ponerUi(_ui.copiar(llamadaEntrante: modelo));
-    });
+        .listen(
+          (snap) {
+            final candidatas =
+                snap.docs
+                    .map(llamadaModelo.fromFirestore)
+                    .where(
+                      (m) =>
+                          m.idReceptor == miUid &&
+                          m.activa &&
+                          m.estado == EstadoLlamadaFirebase.timbrando,
+                    )
+                    .toList()
+                  ..sort((a, b) {
+                    final aMs = a.fecha?.millisecondsSinceEpoch ?? 0;
+                    final bMs = b.fecha?.millisecondsSinceEpoch ?? 0;
+                    return bMs.compareTo(aMs);
+                  });
+
+            if (candidatas.isEmpty) {
+              _ponerUi(_ui.copiar(limpiarEntrante: true));
+              return;
+            }
+            final modelo = candidatas.first;
+            if (_ui.llamadaActiva != null &&
+                _ui.llamadaActiva!.idLlamada == modelo.idLlamada) {
+              return;
+            }
+            _ponerUi(_ui.copiar(llamadaEntrante: modelo));
+          },
+          onError: (error) {
+            _ponerError('Firestore llamadas: $error');
+          },
+        );
   }
 
   Future<void> inicializarMotorRtc(String idAppAgora) async {
     if (!_soportaNativo) {
-      _ponerUi(_ui.copiar(
-        etiquetaConexion: 'no_soportado',
-        textoError: 'Llamadas de voz solo en Android e iOS.',
-      ));
+      _ponerUi(
+        _ui.copiar(
+          etiquetaConexion: 'no_soportado',
+          textoError: 'Llamadas de voz solo en Android e iOS.',
+        ),
+      );
       return;
     }
     if (idAppAgora.isEmpty) {
@@ -189,7 +225,9 @@ class servicioLlamadas extends ChangeNotifier {
     }
     await _motorRtc.inicializar(idAppAgora);
     if (_motorRtc.inicializado) {
-      _ponerUi(_ui.copiar(motorRtcListo: true, etiquetaConexion: _ui.etiquetaConexion));
+      _ponerUi(
+        _ui.copiar(motorRtcListo: true, etiquetaConexion: _ui.etiquetaConexion),
+      );
     }
   }
 
@@ -252,8 +290,10 @@ class servicioLlamadas extends ChangeNotifier {
 
       final cuerpo = <String, dynamic>{
         'idReceptor': idReceptor,
-        if (nombreLocal != null && nombreLocal.trim().isNotEmpty) 'nombreEmisor': nombreLocal.trim(),
-        if (nombreRemoto != null && nombreRemoto.trim().isNotEmpty) 'nombreReceptor': nombreRemoto.trim(),
+        if (nombreLocal != null && nombreLocal.trim().isNotEmpty)
+          'nombreEmisor': nombreLocal.trim(),
+        if (nombreRemoto != null && nombreRemoto.trim().isNotEmpty)
+          'nombreReceptor': nombreRemoto.trim(),
       };
 
       final map = await _clienteHttp.iniciarLlamada(cuerpo);
@@ -265,15 +305,23 @@ class servicioLlamadas extends ChangeNotifier {
       if (idDoc == null || canal == null || token == null || uidAgora == null) {
         throw Exception('Respuesta incompleta del servidor');
       }
-      final appIdMotor = agoraAppIdSrv.isNotEmpty ? agoraAppIdSrv : configAgora.idApp;
+      final appIdMotor = agoraAppIdSrv.isNotEmpty
+          ? agoraAppIdSrv
+          : configAgora.idApp;
       if (appIdMotor.isEmpty) {
-        throw Exception('Sin agoraAppId en servidor: configura AGORA_APP_ID en Render y/o dart-define en cliente');
+        throw Exception(
+          'Sin agoraAppId en servidor: configura AGORA_APP_ID en Render y/o dart-define en cliente',
+        );
       }
 
       await inicializarMotorRtc(appIdMotor);
       _idDocumentoLlamadaActual = idDoc;
       _suscribirDocumentoLlamada(idDoc);
-      await _unirseCanalConCredenciales(canal: canal, token: token, uidAgora: uidAgora);
+      await _unirseCanalConCredenciales(
+        canal: canal,
+        token: token,
+        uidAgora: uidAgora,
+      );
 
       final modelo = llamadaModelo(
         idLlamada: idDoc,
@@ -285,10 +333,7 @@ class servicioLlamadas extends ChangeNotifier {
         nombreEmisor: nombreLocal,
         nombreReceptor: nombreRemoto,
       );
-      _ponerUi(_ui.copiar(
-        llamadaActiva: modelo,
-        cargandoAccion: false,
-      ));
+      _ponerUi(_ui.copiar(llamadaActiva: modelo, cargandoAccion: false));
       _arrancarTemporizadorTimbre(idDoc: idDoc);
     } catch (e) {
       _ponerUi(_ui.copiar(cargandoAccion: false, textoError: '$e'));
@@ -297,16 +342,20 @@ class servicioLlamadas extends ChangeNotifier {
 
   void _suscribirDocumentoLlamada(String idDoc) {
     _subDocumentoLlamada?.cancel();
-    _subDocumentoLlamada = _db.collection('llamadas').doc(idDoc).snapshots().listen((snap) {
-      if (!snap.exists) return;
-      final m = llamadaModelo.fromFirestore(snap);
-      _ponerUi(_ui.copiar(llamadaActiva: m));
-      if (m.estado == EstadoLlamadaFirebase.rechazada ||
-          m.estado == EstadoLlamadaFirebase.perdida ||
-          m.estado == EstadoLlamadaFirebase.finalizada) {
-        unawaited(_salirCanal());
-      }
-    });
+    _subDocumentoLlamada = _db
+        .collection('llamadas')
+        .doc(idDoc)
+        .snapshots()
+        .listen((snap) {
+          if (!snap.exists) return;
+          final m = llamadaModelo.fromFirestore(snap);
+          _ponerUi(_ui.copiar(llamadaActiva: m));
+          if (m.estado == EstadoLlamadaFirebase.rechazada ||
+              m.estado == EstadoLlamadaFirebase.perdida ||
+              m.estado == EstadoLlamadaFirebase.finalizada) {
+            unawaited(_salirCanal());
+          }
+        });
   }
 
   void _arrancarTemporizadorTimbre({required String idDoc}) {
@@ -330,7 +379,9 @@ class servicioLlamadas extends ChangeNotifier {
       if (!await solicitarPermisoMicrofono()) {
         throw Exception('Permiso de microfono denegado');
       }
-      final map = await _clienteHttp.postJson('aceptar', {'idLlamada': entrante.idLlamada});
+      final map = await _clienteHttp.postJson('aceptar', {
+        'idLlamada': entrante.idLlamada,
+      });
       final canal = map['canal'] as String?;
       final token = map['token'] as String?;
       final uidAgora = (map['uidAgora'] as num?)?.toInt();
@@ -338,19 +389,29 @@ class servicioLlamadas extends ChangeNotifier {
       if (canal == null || token == null || uidAgora == null) {
         throw Exception('Respuesta incompleta del servidor');
       }
-      final appIdMotor = agoraAppIdSrv.isNotEmpty ? agoraAppIdSrv : configAgora.idApp;
+      final appIdMotor = agoraAppIdSrv.isNotEmpty
+          ? agoraAppIdSrv
+          : configAgora.idApp;
       if (appIdMotor.isEmpty) {
         throw Exception('Sin agoraAppId en servidor');
       }
       await inicializarMotorRtc(appIdMotor);
       _idDocumentoLlamadaActual = entrante.idLlamada;
       _suscribirDocumentoLlamada(entrante.idLlamada);
-      await _unirseCanalConCredenciales(canal: canal, token: token, uidAgora: uidAgora);
-      _ponerUi(_ui.copiar(
-        llamadaActiva: entrante.copiarCon(estado: EstadoLlamadaFirebase.aceptada),
-        limpiarEntrante: true,
-        cargandoAccion: false,
-      ));
+      await _unirseCanalConCredenciales(
+        canal: canal,
+        token: token,
+        uidAgora: uidAgora,
+      );
+      _ponerUi(
+        _ui.copiar(
+          llamadaActiva: entrante.copiarCon(
+            estado: EstadoLlamadaFirebase.aceptada,
+          ),
+          limpiarEntrante: true,
+          cargandoAccion: false,
+        ),
+      );
     } catch (e) {
       _ponerUi(_ui.copiar(cargandoAccion: false, textoError: '$e'));
     }
@@ -360,7 +421,9 @@ class servicioLlamadas extends ChangeNotifier {
     final entrante = _ui.llamadaEntrante;
     if (entrante == null) return;
     try {
-      await _clienteHttp.postSinJson('rechazar', {'idLlamada': entrante.idLlamada});
+      await _clienteHttp.postSinJson('rechazar', {
+        'idLlamada': entrante.idLlamada,
+      });
     } catch (e) {
       _ponerError('$e');
       return;
@@ -377,7 +440,9 @@ class servicioLlamadas extends ChangeNotifier {
       if (id != null && uid != null) {
         final esEmisor = activa?.idEmisor == uid;
         final timbrando = activa?.estado == EstadoLlamadaFirebase.timbrando;
-        final subruta = (esEmisor && timbrando) ? 'cancelar-emisor' : 'finalizar';
+        final subruta = (esEmisor && timbrando)
+            ? 'cancelar-emisor'
+            : 'finalizar';
         await _clienteHttp.postSinJson(subruta, {'idLlamada': id});
       }
     } catch (e) {
@@ -387,12 +452,14 @@ class servicioLlamadas extends ChangeNotifier {
     await _subDocumentoLlamada?.cancel();
     _subDocumentoLlamada = null;
     _idDocumentoLlamadaActual = null;
-    _ponerUi(_ui.copiar(
-      limpiarActiva: true,
-      limpiarEntrante: true,
-      remotoEnCanal: false,
-      limpiarUidRemoto: true,
-    ));
+    _ponerUi(
+      _ui.copiar(
+        limpiarActiva: true,
+        limpiarEntrante: true,
+        remotoEnCanal: false,
+        limpiarUidRemoto: true,
+      ),
+    );
   }
 
   Future<void> alternarSilencioMicrofono() async {

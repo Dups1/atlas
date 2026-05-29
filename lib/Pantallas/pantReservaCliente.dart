@@ -46,16 +46,28 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   void _cargarDatosPreRellenados() {
     // Rellenar campos de texto si el agente proporciona datos
     if (_relleno.contiene('direccion')) {
-      _direccionController.text = _relleno.obtenerConFallback<String>('direccion', '');
+      _direccionController.text = _relleno.obtenerConFallback<String>(
+        'direccion',
+        '',
+      );
     }
     if (_relleno.contiene('referencias')) {
-      _referenciasController.text = _relleno.obtenerConFallback<String>('referencias', '');
+      _referenciasController.text = _relleno.obtenerConFallback<String>(
+        'referencias',
+        '',
+      );
     }
     if (_relleno.contiene('telefono')) {
-      _telefonoController.text = _relleno.obtenerConFallback<String>('telefono', '');
+      _telefonoController.text = _relleno.obtenerConFallback<String>(
+        'telefono',
+        '',
+      );
     }
     if (_relleno.contiene('detalle')) {
-      _detalleController.text = _relleno.obtenerConFallback<String>('detalle', '');
+      _detalleController.text = _relleno.obtenerConFallback<String>(
+        'detalle',
+        '',
+      );
     }
 
     // Rellenar opciones de dropdown si existen
@@ -90,181 +102,236 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reserva')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _sectionTitle('Resumen del servicio'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trabajador: ${widget.trabajadorNombre ?? 'Sin seleccionar'}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 6),
-                    Text('Categoria: ${widget.categoria ?? 'Sin categoria'}'),
-                    Text('Subcategoria: ${widget.subcategoria ?? 'Sin subcategoria'}'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _sectionTitle('Fecha y hora'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _pickDate,
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(fechaLabel),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _pickTime,
-                        icon: const Icon(Icons.access_time_outlined),
-                        label: Text(horaLabel),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _sectionTitle('Ubicacion'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _direccionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Direccion',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _referenciasController,
-                      decoration: const InputDecoration(
-                        labelText: 'Referencias',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.map_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _telefonoController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefono de contacto',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _sectionTitle('Detalles del problema'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _detalleController,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: const InputDecoration(
-                        labelText: 'Describe lo que necesitas',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: _urgencia,
-                      decoration: const InputDecoration(
-                        labelText: 'Nivel de urgencia',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'Normal', child: Text('Normal')),
-                        DropdownMenuItem(value: 'Urgente', child: Text('Urgente')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sectionTitle('Resumen del servicio'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Trabajador: ${widget.trabajadorNombre ?? 'Sin seleccionar'}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Categoria: ${widget.categoria ?? 'Sin categoria'}',
+                        ),
+                        Text(
+                          'Subcategoria: ${widget.subcategoria ?? 'Sin subcategoria'}',
+                        ),
                       ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _urgencia = value);
-                        }
-                      },
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _sectionTitle('Pago y confirmacion'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: _pago,
-                      decoration: const InputDecoration(
-                        labelText: 'Metodo de pago',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
-                        DropdownMenuItem(value: 'Transferencia', child: Text('Transferencia')),
-                        DropdownMenuItem(value: 'Tarjeta', child: Text('Tarjeta')),
+                const SizedBox(height: 12),
+                _sectionTitle('Fecha y hora'),
+                _cardFechaHora(fechaLabel, horaLabel),
+                const SizedBox(height: 12),
+                _sectionTitle('Ubicacion'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _direccionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Direccion',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.location_on_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _referenciasController,
+                          decoration: const InputDecoration(
+                            labelText: 'Referencias',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.map_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _telefonoController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            labelText: 'Telefono de contacto',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.phone_outlined),
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _pago = value);
-                        }
-                      },
                     ),
-                    const SizedBox(height: 10),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: _aceptaCondiciones,
-                      title: const Text('Acepto condiciones y politica de cancelacion'),
-                      onChanged: (value) => setState(() => _aceptaCondiciones = value ?? false),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _loading ? null : _confirmarReserva,
-                        icon: _loading
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.check_circle_outline),
-                        label: Text(_loading ? 'Confirmando...' : 'Confirmar reserva'),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                _sectionTitle('Detalles del problema'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _detalleController,
+                          minLines: 3,
+                          maxLines: 5,
+                          decoration: const InputDecoration(
+                            labelText: 'Describe lo que necesitas',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          initialValue: _urgencia,
+                          decoration: const InputDecoration(
+                            labelText: 'Nivel de urgencia',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Normal',
+                              child: Text('Normal'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Urgente',
+                              child: Text('Urgente'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _urgencia = value);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _sectionTitle('Pago y confirmacion'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          initialValue: _pago,
+                          decoration: const InputDecoration(
+                            labelText: 'Metodo de pago',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Efectivo',
+                              child: Text('Efectivo'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Transferencia',
+                              child: Text('Transferencia'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Tarjeta',
+                              child: Text('Tarjeta'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _pago = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _aceptaCondiciones,
+                          title: const Text(
+                            'Acepto condiciones y politica de cancelacion',
+                          ),
+                          onChanged: (value) => setState(
+                            () => _aceptaCondiciones = value ?? false,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _loading ? null : _confirmarReserva,
+                            icon: _loading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.check_circle_outline),
+                            label: Text(
+                              _loading ? 'Confirmando...' : 'Confirmar reserva',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardFechaHora(String fechaLabel, String horaLabel) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compacto = constraints.maxWidth < 520;
+            final botonFecha = OutlinedButton.icon(
+              onPressed: _pickDate,
+              icon: const Icon(Icons.calendar_today_outlined),
+              label: Text(
+                fechaLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+            final botonHora = OutlinedButton.icon(
+              onPressed: _pickTime,
+              icon: const Icon(Icons.access_time_outlined),
+              label: Text(
+                horaLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+
+            if (compacto) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [botonFecha, const SizedBox(height: 8), botonHora],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: botonFecha),
+                const SizedBox(width: 8),
+                Expanded(child: botonHora),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -314,12 +381,13 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
       return;
     }
     if (_fechaSeleccionada == null || _horaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona fecha y hora')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecciona fecha y hora')));
       return;
     }
-    if (_direccionController.text.trim().isEmpty || _telefonoController.text.trim().isEmpty) {
+    if (_direccionController.text.trim().isEmpty ||
+        _telefonoController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Direccion y telefono son requeridos')),
       );

@@ -196,7 +196,7 @@ class _pantallaAuthState extends State<pantallaAuth> {
                         ),
                       ),
                       Text(
-                        'Atlas',
+                        'Fixi',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w800,

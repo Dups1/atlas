@@ -994,6 +994,27 @@ function serializarReservacion(doc) {
   };
 }
 
+function esErrorIndiceFirestore(err) {
+  const code = Number(err?.code);
+  const message = String(err?.message || '');
+  const lower = message.toLowerCase();
+  return (
+    code === 9 ||
+    message.includes('FAILED_PRECONDITION') ||
+    lower.includes('requires an index')
+  );
+}
+
+function ordenarReservacionesPorCreadoDesc(items) {
+  return [...items].sort((a, b) => {
+    const tA = a?.creado ? Date.parse(a.creado) : NaN;
+    const tB = b?.creado ? Date.parse(b.creado) : NaN;
+    const nA = Number.isFinite(tA) ? tA : 0;
+    const nB = Number.isFinite(tB) ? tB : 0;
+    return nB - nA;
+  });
+}
+
 // La relacion calificable existe solo si hay al menos una reservacion completada y pagada.
 async function existeRelacionCalificable(clienteUid, trabajadorUid) {
   const snap = await db
@@ -1084,21 +1105,37 @@ app.get('/reservaciones/mias', authenticateToken, async (req, res) => {
     }
 
     const campo = rol === 'cliente' ? 'clienteUid' : 'trabajadorUid';
-    const snap = await db
-      .collection('reservaciones')
-      .where(campo, '==', meUid)
-      .orderBy('creado', 'desc')
-      .limit(200)
-      .get();
+    let docs = [];
+    try {
+      const snap = await db
+        .collection('reservaciones')
+        .where(campo, '==', meUid)
+        .orderBy('creado', 'desc')
+        .limit(200)
+        .get();
+      docs = snap.docs;
+    } catch (queryErr) {
+      if (!esErrorIndiceFirestore(queryErr)) throw queryErr;
+      console.warn(
+        '[reservaciones/mias] Fallback sin indice compuesto:',
+        queryErr.message || queryErr
+      );
+      const snap = await db
+        .collection('reservaciones')
+        .where(campo, '==', meUid)
+        .limit(200)
+        .get();
+      docs = snap.docs;
+    }
 
-    const items = snap.docs
-      .map(serializarReservacion)
-      .filter((item) => {
-        if (!mes) return true;
-        const fecha = item.fecha && typeof item.fecha === 'string' ? new Date(item.fecha) : null;
-        if (!fecha || Number.isNaN(fecha.getTime())) return false;
-        return fecha.getFullYear() === mes.year && fecha.getMonth() + 1 === mes.month;
-      });
+    let items = docs.map(serializarReservacion);
+    items = ordenarReservacionesPorCreadoDesc(items);
+    items = items.filter((item) => {
+      if (!mes) return true;
+      const fecha = item.fecha && typeof item.fecha === 'string' ? new Date(item.fecha) : null;
+      if (!fecha || Number.isNaN(fecha.getTime())) return false;
+      return fecha.getFullYear() === mes.year && fecha.getMonth() + 1 === mes.month;
+    });
 
     res.json(items);
   } catch (err) {
@@ -1654,7 +1691,7 @@ app.post('/laboratorio/vertex', authenticateToken, async (req, res) => {
 
     const systemInstruction = typeof req.body?.systemInstruction === 'string' && req.body.systemInstruction.trim()
       ? req.body.systemInstruction.trim()
-      : 'Eres el agente de modo enigma de Atlas. Responde en espanol, breve, claro y accionable.';
+      : 'Eres el agente de modo enigma de Fixi. Responde en espanol, breve, claro y accionable.';
 
     const temperature = typeof req.body?.temperature === 'number' ? req.body.temperature : 0.2;
     const maxOutputTokens = typeof req.body?.maxOutputTokens === 'number' ? req.body.maxOutputTokens : 512;

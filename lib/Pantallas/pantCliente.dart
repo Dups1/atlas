@@ -446,7 +446,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
           centerTitle: true,
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
-          title: const Text('Explorar Atlas'),
+          title: const Text('Explorar Fixi'),
           actions: [
             _botonModoEnigma(context),
             IconButton.filledTonal(

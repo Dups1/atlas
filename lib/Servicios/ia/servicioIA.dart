@@ -18,7 +18,7 @@ class servicioIA {
   NavigationCallback? _navigationCallback;
 
   static const String _instruccionSistemaPorDefecto =
-      'Eres el agente de modo enigma de Atlas. Responde en espanol, breve, claro y accionable.';
+      'Eres el agente de modo enigma de Fixi. Responde en espanol, breve, claro y accionable.';
 
   void setNavigationCallback(NavigationCallback callback) {
     _navigationCallback = callback;
@@ -43,7 +43,9 @@ class servicioIA {
     print(
       '[IA] systemInstructionLength=${(systemInstruction ?? _instruccionSistemaPorDefecto).trim().length}',
     );
-    print('[IA] temperature=$temperature maxOutputTokens=$maxOutputTokens maxContextTokens=$maxContextTokens');
+    print(
+      '[IA] temperature=$temperature maxOutputTokens=$maxOutputTokens maxContextTokens=$maxContextTokens',
+    );
     print('[IA] historialLength=${historial?.length ?? 0}');
 
     final token = await _almacen.recuperarToken();
@@ -203,7 +205,9 @@ class servicioIA {
 
       if (listaComandos.isEmpty) {
         // Detectar sinónimos y frases naturales que signifiquen acciones
-        final accionesDetectadas = servicioFunciones.detectarAccionesEnTexto(textoAgente);
+        final accionesDetectadas = servicioFunciones.detectarAccionesEnTexto(
+          textoAgente,
+        );
         if (accionesDetectadas.isNotEmpty) {
           listaComandos = accionesDetectadas;
         }
@@ -217,7 +221,9 @@ class servicioIA {
       final confirmaciones = <String>[];
 
       if (_navigationCallback != null) {
-        servicioFunciones.setNavigationCallback(_navigationCallback as NavigationCallback);
+        servicioFunciones.setNavigationCallback(
+          _navigationCallback as NavigationCallback,
+        );
       }
 
       for (final cmd in listaComandos) {
