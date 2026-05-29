@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../Servicios/ia/servicioRellenoAgente.dart';
+
 class pantallaReservaCliente extends StatefulWidget {
   const pantallaReservaCliente({super.key});
 
@@ -19,6 +21,41 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   String _pago = 'Efectivo';
   bool _aceptaCondiciones = false;
   bool _loading = false;
+
+  final _relleno = servicioRellenoAgente();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatosPreRellenados();
+  }
+
+  void _cargarDatosPreRellenados() {
+    // Rellenar campos de texto si el agente proporciona datos
+    if (_relleno.contiene('direccion')) {
+      _direccionController.text = _relleno.obtenerConFallback<String>('direccion', '');
+    }
+    if (_relleno.contiene('referencias')) {
+      _referenciasController.text = _relleno.obtenerConFallback<String>('referencias', '');
+    }
+    if (_relleno.contiene('telefono')) {
+      _telefonoController.text = _relleno.obtenerConFallback<String>('telefono', '');
+    }
+    if (_relleno.contiene('detalle')) {
+      _detalleController.text = _relleno.obtenerConFallback<String>('detalle', '');
+    }
+
+    // Rellenar opciones de dropdown si existen
+    if (_relleno.contiene('urgencia')) {
+      _urgencia = _relleno.obtenerConFallback<String>('urgencia', 'Normal');
+    }
+    if (_relleno.contiene('pago')) {
+      _pago = _relleno.obtenerConFallback<String>('pago', 'Efectivo');
+    }
+
+    // Limpiar datos una vez consumidos para no contaminar navegaciones futuras
+    _relleno.limpiar();
+  }
 
   @override
   void dispose() {

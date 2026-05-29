@@ -197,24 +197,33 @@ class servicioIA {
       final comandos = json['commands'] as List<dynamic>?;
       final textoAgente = json['text'] as String? ?? textoRespuesta;
 
-      if (comandos == null || comandos.isEmpty) {
+      // Detectar acciones automáticamente en el texto si no hay comandos explícitos
+      final servicioFunciones = servicioFuncionesAgente();
+      var listaComandos = comandos?.cast<Map<String, dynamic>>() ?? [];
+
+      if (listaComandos.isEmpty) {
+        // Detectar sinónimos y frases naturales que signifiquen acciones
+        final accionesDetectadas = servicioFunciones.detectarAccionesEnTexto(textoAgente);
+        if (accionesDetectadas.isNotEmpty) {
+          listaComandos = accionesDetectadas;
+        }
+      }
+
+      if (listaComandos.isEmpty) {
         return textoAgente;
       }
 
       // Ejecutar cada comando
       final confirmaciones = <String>[];
-      final servicioFunciones = servicioFuncionesAgente();
 
       if (_navigationCallback != null) {
         servicioFunciones.setNavigationCallback(_navigationCallback as NavigationCallback);
       }
 
-      for (final cmd in comandos) {
-        if (cmd is Map<String, dynamic>) {
-          final resultado = await servicioFunciones.ejecutarComando(cmd);
-          if (resultado['message'] is String) {
-            confirmaciones.add(resultado['message'] as String);
-          }
+      for (final cmd in listaComandos) {
+        final resultado = await servicioFunciones.ejecutarComando(cmd);
+        if (resultado['message'] is String) {
+          confirmaciones.add(resultado['message'] as String);
         }
       }
 

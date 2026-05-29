@@ -25,7 +25,7 @@
         }
       },
       "dart": {
-        "lib/firebase_options.dart": {
+        "lib/firebaseOptions.dart": {
           "projectId": "atlas007",
           "configurations": {
             "android": "1:565070198305:android:7ad9e3553cee9ff562d560",

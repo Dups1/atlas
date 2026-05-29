@@ -49,6 +49,8 @@ const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_BASE_URL = process.env.GROQ_BASE_URL ? process.env.GROQ_BASE_URL.replace(/\/$/, '') : '';
 const GROQ_MODEL = process.env.GROQ_MODEL || '';
+const FACTURAPI_API_KEY = process.env.FACTURAPI_API_KEY || process.env.FACTURAPI_SECRET_KEY || '';
+const FACTURAPI_BASE_URL = (process.env.FACTURAPI_BASE_URL || 'https://www.facturapi.io/v2').replace(/\/$/, '');
 const VERTEX_PROJECT_ID = process.env.VERTEX_PROJECT_ID || serviceAccount.project_id || '';
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const VERTEX_MODEL = process.env.VERTEX_MODEL || '';
@@ -95,6 +97,79 @@ function ensureApiKey(req, res, next) {
     return res.status(500).json({ error: 'Falta FIREBASE_API_KEY' });
   }
   next();
+}
+
+function ensureFacturapiConfig(req, res, next) {
+  if (!FACTURAPI_API_KEY) {
+    return res.status(500).json({ error: 'Falta FACTURAPI_API_KEY o FACTURAPI_SECRET_KEY' });
+  }
+  if (!FACTURAPI_BASE_URL) {
+    return res.status(500).json({ error: 'Falta FACTURAPI_BASE_URL' });
+  }
+  next();
+}
+
+async function facturapiRequest(path, options = {}) {
+  if (!globalThis.fetch) {
+    throw new Error('Este entorno de Node no soporta fetch global');
+  }
+
+  const url = `${FACTURAPI_BASE_URL}${path}`;
+  const headers = {
+    Authorization: `Bearer ${FACTURAPI_API_KEY}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  const response = await globalThis.fetch(url, {
+    method: options.method || 'GET',
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  let payload = null;
+  if (contentType.includes('application/json')) {
+    payload = await response.json();
+  } else {
+    const text = await response.text();
+    try {
+      payload = JSON.parse(text);
+    } catch (_) {
+      payload = { raw: text };
+    }
+  }
+
+  return { ok: response.ok, status: response.status, payload };
+}
+
+async function facturapiBinaryRequest(path, options = {}) {
+  if (!globalThis.fetch) {
+    throw new Error('Este entorno de Node no soporta fetch global');
+  }
+
+  const url = `${FACTURAPI_BASE_URL}${path}`;
+  const headers = {
+    Authorization: `Bearer ${FACTURAPI_API_KEY}`,
+    ...(options.headers || {}),
+  };
+
+  const response = await globalThis.fetch(url, {
+    method: options.method || 'GET',
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const contentType = response.headers.get('content-type') || 'application/octet-stream';
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    contentType,
+    buffer,
+  };
 }
 
 async function authenticateToken(req, res, next) {
@@ -1047,6 +1122,112 @@ app.post('/firebase/:coleccion/batch', async (req, res) => {
 // Estado del backend
 app.get('/status', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Facturapi: facturacion segura desde el backend
+app.get('/facturacion/facturapi/estado', authenticateToken, ensureFacturapiConfig, (req, res) => {
+  res.json({
+    configurada: true,
+    baseUrl: FACTURAPI_BASE_URL,
+    tieneClave: Boolean(FACTURAPI_API_KEY),
+  });
+});
+
+app.post('/facturacion/facturapi/productos', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const respuesta = await facturapiRequest('/products', {
+      method: 'POST',
+      body: payload,
+    });
+
+    return res.status(respuesta.status).json(respuesta.payload);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/facturacion/facturapi/productos/:id', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const respuesta = await facturapiRequest(`/products/${encodeURIComponent(req.params.id)}`);
+    return res.status(respuesta.status).json(respuesta.payload);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/facturacion/facturapi/facturas', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const respuesta = await facturapiRequest('/invoices', {
+      method: 'POST',
+      body: payload,
+    });
+
+    return res.status(respuesta.status).json(respuesta.payload);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/facturacion/facturapi/facturas', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const query = new URLSearchParams();
+    Object.entries(req.query || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim()) {
+        query.set(key, String(value));
+      }
+    });
+
+    const sufijo = query.toString() ? `?${query.toString()}` : '';
+    const respuesta = await facturapiRequest(`/invoices${sufijo}`);
+    return res.status(respuesta.status).json(respuesta.payload);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/facturacion/facturapi/facturas/:id', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const respuesta = await facturapiRequest(`/invoices/${encodeURIComponent(req.params.id)}`);
+    return res.status(respuesta.status).json(respuesta.payload);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/facturacion/facturapi/facturas/:id/pdf', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const respuesta = await facturapiBinaryRequest(`/invoices/${encodeURIComponent(req.params.id)}/pdf`, {
+      headers: {
+        Accept: 'application/pdf',
+      },
+    });
+
+    res.status(respuesta.status);
+    res.setHeader('Content-Type', respuesta.contentType);
+    res.setHeader('Content-Length', respuesta.buffer.length);
+    return res.send(respuesta.buffer);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/facturacion/facturapi/facturas/:id/xml', authenticateToken, ensureFacturapiConfig, async (req, res) => {
+  try {
+    const respuesta = await facturapiBinaryRequest(`/invoices/${encodeURIComponent(req.params.id)}/xml`, {
+      headers: {
+        Accept: 'application/xml, text/xml, text/plain;q=0.9',
+      },
+    });
+
+    res.status(respuesta.status);
+    res.setHeader('Content-Type', respuesta.contentType);
+    res.setHeader('Content-Length', respuesta.buffer.length);
+    return res.send(respuesta.buffer);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 // --- Laboratorio (transcripcion por backend + Groq) ---

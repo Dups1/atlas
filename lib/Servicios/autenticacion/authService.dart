@@ -12,9 +12,16 @@ class autenticacionService {
     servicioAuth? authService,
     servicioPerfilApi? perfilApi,
     autenticacionStorage? storage,
-  })  : _auth = authService ?? servicioAuth(),
-        _perfilApi = perfilApi ?? servicioPerfilApi(),
-        _storage = storage ?? autenticacionStorage();
+  }) : _auth = authService ?? servicioAuth(),
+       _perfilApi = perfilApi ?? servicioPerfilApi(),
+       _storage = storage ?? autenticacionStorage();
+
+  String _normalizarRol(dynamic rawRol) {
+    final rol = (rawRol ?? '').toString().trim().toLowerCase();
+    if (rol == 'trabajador') return 'trabajador';
+    if (rol == 'cliente') return 'cliente';
+    return 'cliente';
+  }
 
   Future<void> limpiarToken() async {
     await servicioFirebaseSync.cerrarSesionFirebase();
@@ -25,10 +32,7 @@ class autenticacionService {
     required String email,
     required String password,
   }) async {
-    final data = await _auth.login(
-      email: email,
-      password: password,
-    );
+    final data = await _auth.login(email: email, password: password);
     final idToken = data['idToken'] as String?;
     if (idToken == null) throw Exception('Token no recibido');
     await _storage.guardarToken(idToken);
@@ -36,7 +40,7 @@ class autenticacionService {
       await servicioFirebaseSync.sincronizarConTokenGuardado();
     } catch (_) {}
     final perfil = await _perfilApi.fetchPerfil(idToken);
-    return perfil['rol'] as String? ?? 'cliente';
+    return _normalizarRol(perfil['rol']);
   }
 
   Future<String> register({
@@ -67,6 +71,6 @@ class autenticacionService {
       await servicioFirebaseSync.sincronizarConTokenGuardado();
     } catch (_) {}
     final perfil = await _perfilApi.fetchPerfil(token);
-    return perfil['rol'] as String? ?? 'cliente';
+    return _normalizarRol(perfil['rol']);
   }
 }

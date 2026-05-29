@@ -5,6 +5,7 @@ import '../Servicios/almacenamiento/selectorArchivo.dart';
 import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
 import '../Servicios/perfil/servicioPerfilFirebase.dart';
+import '../Servicios/ia/servicioRellenoAgente.dart';
 
 class perfilClienteView extends StatefulWidget {
   const perfilClienteView({super.key});
@@ -18,6 +19,7 @@ class _perfilClienteViewState extends State<perfilClienteView> {
   final servicioPerfilApi _perfilApi = servicioPerfilApi();
   final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
   final servicioPerfilFirebase _perfilFirebase = servicioPerfilFirebase();
+  final servicioRellenoAgente _relleno = servicioRellenoAgente();
   late final Future<Map<String, dynamic>> _perfilFuture;
   bool _uploadingPhoto = false;
   Map<String, dynamic>? _perfilCache;
@@ -67,8 +69,9 @@ class _perfilClienteViewState extends State<perfilClienteView> {
           final rol = (perfil['rol'] ?? 'cliente').toString();
 
           if (!_fieldsInitialized) {
-            _nombreController.text = nombre;
-            _telefonoController.text = telefono;
+            _nombreController.text = _relleno.obtenerConFallback<String>('nombre', nombre);
+            _telefonoController.text = _relleno.obtenerConFallback<String>('telefono', telefono);
+            _relleno.limpiar();
             _fieldsInitialized = true;
           }
 

@@ -60,60 +60,147 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
 
   Widget _botonModoEnigma(BuildContext context) {
     final modoEnigma = alcanceModoEnigma.of(context);
-    final color = modoEnigma.activo ? Colors.green : Colors.red;
+    final color = modoEnigma.activo
+        ? const Color(0xFF15803D)
+        : const Color(0xFFB91C1C);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      child: TextButton(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: TextButton.icon(
         onPressed: modoEnigma.alternar,
         style: TextButton.styleFrom(
-          backgroundColor: color,
+          backgroundColor: color.withValues(alpha: 0.14),
+          side: BorderSide(color: color.withValues(alpha: 0.35)),
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           visualDensity: VisualDensity.compact,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
         ),
-        child: const Text(
+        icon: Icon(
+          modoEnigma.activo
+              ? Icons.verified_user_outlined
+              : Icons.visibility_off_outlined,
+          size: 15,
+          color: color,
+        ),
+        label: Text(
           'Modo enigma',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: color,
+            fontSize: 12,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDrawerContent({required BuildContext context}) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      children: [
-        const ListTile(
-          title: Text('Ajustes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF9FBFF), Color(0xFFF1F5FD)],
         ),
-        ListTile(
-          leading: const Icon(Icons.settings),
-          title: const Text('Configuraciones'),
-          subtitle: const Text('Tema y permisos'),
-          onTap: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaConfiguraciones()));
-          },
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.blueGrey.withValues(alpha: 0.12),
+              ),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ajustes',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Administra preferencias, permisos y sesión.',
+                  style: TextStyle(fontSize: 12.5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          _drawerTile(
+            icon: Icons.settings_outlined,
+            title: 'Configuraciones',
+            subtitle: 'Tema y permisos',
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const vistaConfiguraciones()),
+              );
+            },
+          ),
+          _drawerTile(
+            icon: Icons.info_outline,
+            title: 'Acerca de',
+            subtitle: 'Redes sociales y version',
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
+            },
+          ),
+          _drawerTile(
+            icon: Icons.logout,
+            title: 'Cerrar sesion',
+            subtitle: 'Advertencia de salida',
+            warning: true,
+            onTap: _promptCerrarSesion,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool warning = false,
+  }) {
+    final iconColor = warning
+        ? const Color(0xFFB91C1C)
+        : Colors.blueGrey.shade700;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: ListTile(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.12)),
+          ),
+          leading: Icon(icon, color: iconColor),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: warning ? iconColor : null,
+            ),
+          ),
+          subtitle: Text(subtitle),
+          onTap: onTap,
         ),
-        ListTile(
-          leading: const Icon(Icons.info),
-          title: const Text('Acerca de'),
-          subtitle: const Text('Redes sociales y versión'),
-          onTap: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const vistaAcerca()));
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Cerrar sesión'),
-          subtitle: const Text('Advertencia de salida'),
-          onTap: _promptCerrarSesion,
-        ),
-      ],
+      ),
     );
   }
 
@@ -131,6 +218,9 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
 
   Widget _settingsDrawer() {
     return Drawer(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
+      ),
       child: StatefulBuilder(
         builder: (context, _) {
           return _buildDrawerContent(context: context);
@@ -143,40 +233,56 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   Widget build(BuildContext context) {
     return escuchaLlamadasEntrantes(
       child: Scaffold(
-          key: _scaffoldKey,
-          appBar: AppBar(
-            title: const Text('Panel de control'),
-            centerTitle: true,
-            backgroundColor: const Color(0xFF7B1E3A),
-            actions: [
-              _botonModoEnigma(context),
-              IconButton(
-                icon: const Icon(Icons.science),
-                tooltip: 'Laboratorio',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
-                ),
+        key: _scaffoldKey,
+        backgroundColor: const Color(0xFFF4F6FB),
+        appBar: AppBar(
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Panel de control'),
+          actions: [
+            _botonModoEnigma(context),
+            IconButton.filledTonal(
+              icon: const Icon(Icons.science_outlined),
+              tooltip: 'Laboratorio',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
               ),
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-              ),
-            ],
-          ),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              const workerProfileView(embedded: true),
-            ],
-          ),
-          endDrawer: _settingsDrawer(),
-          bottomNavigationBar: _buildBottomBar(),
+            ),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            ),
+            const SizedBox(width: 10),
+          ],
         ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            ),
+          ),
+          child: const workerProfileView(embedded: true),
+        ),
+        endDrawer: _settingsDrawer(),
+        bottomNavigationBar: _buildBottomBar(),
+      ),
     );
   }
 
   Widget _buildBottomBar() {
-    const labels = ['Escritorio', 'Calendario', 'Mensajes', 'Portafolio', 'Mi cuenta'];
+    const labels = [
+      'Escritorio',
+      'Calendario',
+      'Mensajes',
+      'Portafolio',
+      'Mi cuenta',
+    ];
     const icons = [
       Icons.space_dashboard_outlined,
       Icons.calendar_month_outlined,
@@ -185,65 +291,106 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
       Icons.person_outline,
     ];
 
-    return BottomAppBar(
-      color: Colors.white,
-      elevation: 8,
-      height: 88,
-      padding: EdgeInsets.zero,
+    return SafeArea(
+      top: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(labels.length, (index) {
-            final isActive = _selectedIndex == index;
-            final color = isActive ? Theme.of(context).colorScheme.primary : Colors.grey;
-            return Expanded(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () {
-                    setState(() => _selectedIndex = index);
-                    if (index == 1) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
-                      );
-                    }
-                    if (index == 2) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const pantallaMensajesTrabajador()),
-                      );
-                    }
-                    if (index == 3) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => pantallaPortafolioTrabajador()),
-                      );
-                    }
-                    if (index == 4) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const perfilTrabajadorBasicoView()),
-                      );
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icons[index], size: 22, color: color),
-                        const SizedBox(height: 2),
-                        Text(
-                          labels[index],
-                          style: TextStyle(color: color, fontSize: 11),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: List.generate(labels.length, (index) {
+              final isActive = _selectedIndex == index;
+              final color = isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.blueGrey.shade500;
+              return Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      setState(() => _selectedIndex = index);
+                      if (index == 1) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const pantallaCalendarioTrabajador(),
+                          ),
+                        );
+                      }
+                      if (index == 2) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const pantallaMensajesTrabajador(),
+                          ),
+                        );
+                      }
+                      if (index == 3) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => pantallaPortafolioTrabajador(),
+                          ),
+                        );
+                      }
+                      if (index == 4) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const perfilTrabajadorBasicoView(),
+                          ),
+                        );
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icons[index], size: 20, color: color),
+                          const SizedBox(height: 3),
+                          Text(
+                            labels[index],
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 10.8,
+                              fontWeight: isActive
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -271,10 +418,12 @@ class perfilTrabajadorBasicoView extends StatefulWidget {
   const perfilTrabajadorBasicoView({super.key});
 
   @override
-  State<perfilTrabajadorBasicoView> createState() => _perfilTrabajadorBasicoViewState();
+  State<perfilTrabajadorBasicoView> createState() =>
+      _perfilTrabajadorBasicoViewState();
 }
 
-class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView> {
+class _perfilTrabajadorBasicoViewState
+    extends State<perfilTrabajadorBasicoView> {
   final servicioPerfilFirebase _perfilService = servicioPerfilFirebase();
   final servicioCategorias _categoriasService = servicioCategorias();
   final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
@@ -291,6 +440,11 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
   bool _savingFields = false;
   bool _fieldsInitialized = false;
   Map<String, dynamic>? _perfilCache;
+
+  String _idPerfil(Map<String, dynamic> perfil) {
+    final id = (perfil['id'] ?? perfil['uid'] ?? '').toString().trim();
+    return id;
+  }
 
   @override
   void initState() {
@@ -339,7 +493,7 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
     final file = await pickImageFile();
     if (file == null) return;
 
-    final userId = (perfil['id'] ?? '').toString();
+    final userId = _idPerfil(perfil);
     if (userId.isEmpty) return;
 
     setState(() => _uploadingPhoto = true);
@@ -353,22 +507,19 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
       await _perfilService.actualizarPerfil(userId, {'foto': url});
 
       setState(() {
-        _perfilCache = {
-          ...(_perfilCache ?? perfil),
-          'foto': url,
-        };
+        _perfilCache = {...(_perfilCache ?? perfil), 'foto': url};
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto actualizada')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Foto actualizada')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir foto: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir foto: $e')));
       }
     } finally {
       if (mounted) {
@@ -378,27 +529,27 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
   }
 
   Future<void> _guardarPerfilBasico(Map<String, dynamic> perfil) async {
-    final userId = (perfil['id'] ?? '').toString();
+    final userId = _idPerfil(perfil);
     if (userId.isEmpty) return;
     final nombre = _nombreController.text.trim();
     final telefono = _telefonoController.text.trim();
     final categoria = _categoriaController.text.trim();
     if (nombre.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nombre requerido')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nombre requerido')));
       return;
     }
     if (telefono.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Telefono requerido')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Telefono requerido')));
       return;
     }
     if (categoria.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Categoria requerida')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Categoria requerida')));
       return;
     }
 
@@ -413,21 +564,18 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
       };
       await _perfilService.actualizarPerfil(userId, fields);
       setState(() {
-        _perfilCache = {
-          ...(_perfilCache ?? perfil),
-          ...fields,
-        };
+        _perfilCache = {...(_perfilCache ?? perfil), ...fields};
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cambios guardados')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
       }
     } finally {
       if (mounted) {
@@ -440,7 +588,9 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -469,7 +619,9 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: _uploadingPhoto ? null : () => _pickAndUploadPhoto(perfil),
+            onPressed: _uploadingPhoto
+                ? null
+                : () => _pickAndUploadPhoto(perfil),
             icon: const Icon(Icons.image_outlined),
             label: const Text('Seleccionar otra imagen'),
           ),
@@ -506,7 +658,8 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
                   return const Text('No hay categorias disponibles');
                 }
 
-                if (_categoriaSeleccionada == null && _categoriaController.text.isNotEmpty) {
+                if (_categoriaSeleccionada == null &&
+                    _categoriaController.text.isNotEmpty) {
                   categoria? match;
                   for (final c in categorias) {
                     if (c.nombre == _categoriaController.text) {
@@ -519,7 +672,10 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
                       if (!mounted) return;
                       setState(() {
                         _categoriaSeleccionada = match;
-                        _subcategoriaSeleccionada = match!.subcategorias.contains(_subcategoriaController.text)
+                        _subcategoriaSeleccionada =
+                            match!.subcategorias.contains(
+                              _subcategoriaController.text,
+                            )
                             ? _subcategoriaController.text
                             : null;
                       });
@@ -562,7 +718,12 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
                         prefixIcon: Icon(Icons.subdirectory_arrow_right),
                       ),
                       items: (_categoriaSeleccionada?.subcategorias ?? [])
-                          .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
+                          .map(
+                            (s) => DropdownMenuItem<String>(
+                              value: s,
+                              child: Text(s),
+                            ),
+                          )
                           .toList(),
                       onChanged: _categoriaSeleccionada == null
                           ? null
@@ -594,7 +755,12 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
     );
   }
 
-  Widget _buildDatosContacto(String email, String telefono, String direccion, String rol) {
+  Widget _buildDatosContacto(
+    String email,
+    String telefono,
+    String direccion,
+    String rol,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -629,7 +795,9 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _savingFields ? null : () => _guardarPerfilBasico(perfil),
+            onPressed: _savingFields
+                ? null
+                : () => _guardarPerfilBasico(perfil),
             icon: _savingFields
                 ? const SizedBox(
                     width: 16,
@@ -647,53 +815,73 @@ class _perfilTrabajadorBasicoViewState extends State<perfilTrabajadorBasicoView>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _perfilFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      backgroundColor: const Color(0xFFF4F6FB),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Perfil'),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+          ),
+        ),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _perfilFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-          final perfil = _perfilCache ?? snapshot.data ?? {};
-          _perfilCache ??= perfil;
-          final nombre = (perfil['nombre'] ?? 'Sin nombre').toString();
-          final email = (perfil['email'] ?? 'Sin correo').toString();
-          final foto = (perfil['foto'] ?? '').toString();
-          final telefono = (perfil['telefono'] ?? 'Sin telefono').toString();
-          final direccion = (perfil['direccion'] ?? 'Sin direccion').toString();
-          final rol = (perfil['rol'] ?? 'trabajador').toString();
-          final descripcion = (perfil['descripcion'] ?? 'Sin descripcion').toString();
-          final categoria = (perfil['categoria'] ?? 'Sin categoria').toString();
-          final subcategoria = (perfil['subcategoria'] ?? 'Sin subcategoria').toString();
-          if (!_fieldsInitialized) {
-            _nombreController.text = nombre;
-            _descripcionController.text = descripcion;
-            _telefonoController.text = telefono;
-            _categoriaController.text = categoria;
-            _subcategoriaController.text = subcategoria;
-            _fieldsInitialized = true;
-          }
+            final perfil = _perfilCache ?? snapshot.data ?? {};
+            _perfilCache ??= perfil;
+            final nombre = (perfil['nombre'] ?? 'Sin nombre').toString();
+            final email = (perfil['email'] ?? 'Sin correo').toString();
+            final foto = (perfil['foto'] ?? '').toString();
+            final telefono = (perfil['telefono'] ?? 'Sin telefono').toString();
+            final direccion = (perfil['direccion'] ?? 'Sin direccion')
+                .toString();
+            final rol = (perfil['rol'] ?? 'trabajador').toString();
+            final descripcion = (perfil['descripcion'] ?? 'Sin descripcion')
+                .toString();
+            final categoria = (perfil['categoria'] ?? 'Sin categoria')
+                .toString();
+            final subcategoria = (perfil['subcategoria'] ?? 'Sin subcategoria')
+                .toString();
+            if (!_fieldsInitialized) {
+              _nombreController.text = nombre;
+              _descripcionController.text = descripcion;
+              _telefonoController.text = telefono;
+              _categoriaController.text = categoria;
+              _subcategoriaController.text = subcategoria;
+              _fieldsInitialized = true;
+            }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeaderCard(perfil, foto),
-                const SizedBox(height: 14),
-                _buildDatosProfesionales(perfil),
-                const SizedBox(height: 12),
-                _buildDatosContacto(email, telefono, direccion, rol),
-                const SizedBox(height: 12),
-                _buildAcciones(perfil),
-              ],
-            ),
-          );
-        },
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeaderCard(perfil, foto),
+                  const SizedBox(height: 14),
+                  _buildDatosProfesionales(perfil),
+                  const SizedBox(height: 12),
+                  _buildDatosContacto(email, telefono, direccion, rol),
+                  const SizedBox(height: 12),
+                  _buildAcciones(perfil),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -710,6 +898,13 @@ class _workerProfileViewState extends State<workerProfileView> {
   final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
 
   static const List<String> _fallbackGallery = [];
+
+  String _idPerfilActivo() {
+    final id = (_profileData['id'] ?? _profileData['uid'] ?? '')
+        .toString()
+        .trim();
+    return id;
+  }
 
   @override
   void initState() {
@@ -753,7 +948,11 @@ class _workerProfileViewState extends State<workerProfileView> {
 
   List<String> _resolveGallery(dynamic raw) {
     if (raw is List) {
-      final strings = raw.map((e) => e?.toString()).whereType<String>().where((s) => s.isNotEmpty).toList();
+      final strings = raw
+          .map((e) => e?.toString())
+          .whereType<String>()
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (strings.isNotEmpty) return strings;
     }
     return _fallbackGallery;
@@ -768,8 +967,13 @@ class _workerProfileViewState extends State<workerProfileView> {
         ? profile['foto'] as String
         : '';
     final nombre = (profile['nombre'] ?? 'Samuel Ruiz').toString();
-    final rating = double.tryParse((profile['calificacion'] ?? '4.0').toString()) ?? 4.0;
-    final reviews = int.tryParse((profile['reseñas'] ?? profile['resenas'] ?? '100').toString()) ?? 100;
+    final rating =
+        double.tryParse((profile['calificacion'] ?? '4.0').toString()) ?? 4.0;
+    final reviews =
+        int.tryParse(
+          (profile['reseñas'] ?? profile['resenas'] ?? '100').toString(),
+        ) ??
+        100;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -778,22 +982,30 @@ class _workerProfileViewState extends State<workerProfileView> {
         children: [
           // Avatar
           GestureDetector(
-            onTap: widget.readOnly || _uploadingPhoto ? null : _pickAndUploadPhoto,
+            onTap: widget.readOnly || _uploadingPhoto
+                ? null
+                : _pickAndUploadPhoto,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 CircleAvatar(
                   radius: 62,
-                  backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                  backgroundImage: avatar.isNotEmpty
+                      ? NetworkImage(avatar)
+                      : null,
                   child: _uploadingPhoto
                       ? Container(
                           decoration: const BoxDecoration(
                             color: Color(0x88000000),
                             shape: BoxShape.circle,
                           ),
-                          child: const CircularProgressIndicator(color: Colors.white),
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
                         )
-                      : (avatar.isEmpty ? const Icon(Icons.person, size: 44) : null),
+                      : (avatar.isEmpty
+                            ? const Icon(Icons.person, size: 44)
+                            : null),
                 ),
                 if (!_uploadingPhoto && !widget.readOnly)
                   Positioned(
@@ -805,7 +1017,11 @@ class _workerProfileViewState extends State<workerProfileView> {
                         color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
               ],
@@ -828,18 +1044,27 @@ class _workerProfileViewState extends State<workerProfileView> {
               Expanded(
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: Column(
                       children: const [
                         Text(
                           'Ingresos mensuales (MXN)',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         SizedBox(height: 6),
                         Text(
                           '0.00 MXN',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -850,18 +1075,27 @@ class _workerProfileViewState extends State<workerProfileView> {
               Expanded(
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: Column(
                       children: const [
                         Text(
                           'Trabajos completados',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         SizedBox(height: 6),
                         Text(
                           '0',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -889,11 +1123,23 @@ class _workerProfileViewState extends State<workerProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _itemSolicitud('Pedro M', 'Fuga de agua en baño', clienteUid: null),
+                  _itemSolicitud(
+                    'Pedro M',
+                    'Fuga de agua en baño',
+                    clienteUid: null,
+                  ),
                   const Divider(height: 20),
-                  _itemSolicitud('Laura G', 'Instalacion de luminaria en sala', clienteUid: null),
+                  _itemSolicitud(
+                    'Laura G',
+                    'Instalacion de luminaria en sala',
+                    clienteUid: null,
+                  ),
                   const Divider(height: 20),
-                  _itemSolicitud('Carlos R', 'Revision de corto en cocina', clienteUid: null),
+                  _itemSolicitud(
+                    'Carlos R',
+                    'Revision de corto en cocina',
+                    clienteUid: null,
+                  ),
                 ],
               ),
             ),
@@ -925,7 +1171,10 @@ class _workerProfileViewState extends State<workerProfileView> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {},
-                      icon: const Icon(Icons.settings_suggest_outlined, size: 18),
+                      icon: const Icon(
+                        Icons.settings_suggest_outlined,
+                        size: 18,
+                      ),
                       label: const Text('Gestionar servicios'),
                     ),
                   ),
@@ -934,7 +1183,10 @@ class _workerProfileViewState extends State<workerProfileView> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const pantallaCalendarioTrabajador()),
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const pantallaCalendarioTrabajador(),
+                          ),
                         );
                       },
                       icon: const Icon(Icons.calendar_month_outlined, size: 18),
@@ -1036,48 +1288,59 @@ class _workerProfileViewState extends State<workerProfileView> {
                 ),
               ),
               if (!widget.readOnly)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: GestureDetector(
-                  onTap: () => _removeGalleryImage(idx),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xCC000000),
-                      shape: BoxShape.circle,
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => _removeGalleryImage(idx),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xCC000000),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
-                    padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.close, size: 14, color: Colors.white),
                   ),
                 ),
-              ),
             ],
           );
         }),
         // Boton agregar (solo en modo propio)
         if (!widget.readOnly)
-        GestureDetector(
-          onTap: _uploadingGallery ? null : _addGalleryImage,
-          child: Container(
-            width: 150,
-            height: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade400, width: 1.5),
-              color: Colors.grey.shade100,
+          GestureDetector(
+            onTap: _uploadingGallery ? null : _addGalleryImage,
+            child: Container(
+              width: 150,
+              height: 100,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400, width: 1.5),
+                color: Colors.grey.shade100,
+              ),
+              child: _uploadingGallery
+                  ? const Center(child: CircularProgressIndicator())
+                  : const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 32,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Agregar nuevo trabajo',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
             ),
-            child: _uploadingGallery
-                ? const Center(child: CircularProgressIndicator())
-                : const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_photo_alternate_outlined, size: 32, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text('Agregar nuevo trabajo', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    ],
-                  ),
           ),
-        ),
       ],
     );
   }
@@ -1097,15 +1360,15 @@ class _workerProfileViewState extends State<workerProfileView> {
       final updated = [..._gallery, url];
       setState(() => _gallery = updated);
 
-      final userId = _profileData['id'] as String?;
-      if (userId != null && userId.isNotEmpty) {
+      final userId = _idPerfilActivo();
+      if (userId.isNotEmpty) {
         await _perfilService.actualizarPerfil(userId, {'galeria': updated});
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir imagen: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploadingGallery = false);
@@ -1116,8 +1379,8 @@ class _workerProfileViewState extends State<workerProfileView> {
     final updated = [..._gallery]..removeAt(index);
     setState(() => _gallery = updated);
 
-    final userId = _profileData['id'] as String?;
-    if (userId != null && userId.isNotEmpty) {
+    final userId = _idPerfilActivo();
+    if (userId.isNotEmpty) {
       try {
         await _perfilService.actualizarPerfil(userId, {'galeria': updated});
       } catch (e) {
@@ -1142,8 +1405,8 @@ class _workerProfileViewState extends State<workerProfileView> {
         contentType: file.mimeType,
       );
 
-      final userId = _profileData['id'] as String?;
-      if (userId != null && userId.isNotEmpty) {
+      final userId = _idPerfilActivo();
+      if (userId.isNotEmpty) {
         await _perfilService.actualizarPerfil(userId, {'foto': url});
       }
 
@@ -1152,15 +1415,15 @@ class _workerProfileViewState extends State<workerProfileView> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto actualizada')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Foto actualizada')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir foto: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir foto: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
@@ -1196,11 +1459,24 @@ class _workerProfileViewState extends State<workerProfileView> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Perfil'),
-        backgroundColor: Colors.black,
       ),
-      body: body,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+          ),
+        ),
+        child: body,
+      ),
     );
   }
 }

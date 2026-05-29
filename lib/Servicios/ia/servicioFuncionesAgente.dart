@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../mensajes/servicioMensajes.dart';
 import '../perfil/servicioPerfilFirebase.dart';
 import '../autenticacion/autenticacionStorage.dart';
+import 'servicioRellenoAgente.dart';
 
 typedef NavigationCallback = Future<void> Function(String screenName);
 
@@ -18,6 +19,7 @@ class servicioFuncionesAgente {
   final _mensajes = servicioMensajes();
   final _perfil = servicioPerfilFirebase();
   final _almacen = autenticacionStorage();
+  final _relleno = servicioRellenoAgente();
 
   NavigationCallback? _navigationCallback;
 
@@ -32,18 +34,30 @@ class servicioFuncionesAgente {
       final params = comando['params'] as Map<String, dynamic>? ?? {};
 
       switch (action) {
-        case 'navigate':
+        case 'navegar':
           return await _navegar(params);
-        case 'updateProfile':
+        case 'llenarYNavegar':
+          return await _llenarYNavegar(params);
+        case 'actualizarPerfil':
           return await _actualizarPerfil(params);
-        case 'sendMessage':
+        case 'enviarMensaje':
           return await _enviarMensaje(params);
-        case 'search':
+        case 'buscar':
           return await _buscar(params);
-        case 'getInfo':
+        case 'obtenerInfo':
           return await _obtenerInfo(params);
-        case 'setModoEnigma':
+        case 'establecerModoEnigma':
           return await _setModoEnigma(params);
+        case 'irAReserva':
+          return await _navegarAReserva(params);
+        case 'irAChat':
+          return await _navegarAChat(params);
+        case 'irAlPerfil':
+          return await _navegarAPerfil(params);
+        case 'irAMensajes':
+          return await _navegarAMensajes(params);
+        case 'irAConfiguracion':
+          return await _navegarASettings(params);
         default:
           return {
             'success': false,
@@ -235,5 +249,241 @@ class servicioFuncionesAgente {
     } catch (e) {
       return {'success': false, 'message': 'Error en modo enigma: $e'};
     }
+  }
+
+  /// Llena campos de pantalla y navega
+  /// Espera: {"screen": "reserva", "data": {"direccion": "...", "telefono": "..."}}
+  Future<Map<String, dynamic>> _llenarYNavegar(Map<String, dynamic> params) async {
+    try {
+      final screen = params['screen'] as String?;
+      final datos = params['data'] as Map<String, dynamic>? ?? {};
+
+      if (screen == null || screen.isEmpty) {
+        return {'success': false, 'message': 'Pantalla no especificada'};
+      }
+
+      // Almacenar datos para que la pantalla los consuma
+      _relleno.setDatos(datos);
+
+      // Navegar a la pantalla
+      if (_navigationCallback == null) {
+        _relleno.limpiar();
+        return {'success': false, 'message': 'Navegación no disponible'};
+      }
+
+      try {
+        await _navigationCallback!(screen);
+        return {
+          'success': true,
+          'message': 'Navegando a $screen con datos pre-rellenados ✓',
+        };
+      } catch (e) {
+        _relleno.limpiar();
+        return {'success': false, 'message': 'Error navegando: $e'};
+      }
+    } catch (e) {
+      _relleno.limpiar();
+      return {'success': false, 'message': 'Error en fillAndNavigate: $e'};
+    }
+  }
+
+  /// Navega a la pantalla de reserva con datos pre-rellenados
+  Future<Map<String, dynamic>> _navegarAReserva(Map<String, dynamic> params) async {
+    try {
+      final datos = <String, dynamic>{
+        if (params['direccion'] != null) 'direccion': params['direccion'],
+        if (params['referencias'] != null) 'referencias': params['referencias'],
+        if (params['telefono'] != null) 'telefono': params['telefono'],
+        if (params['detalle'] != null) 'detalle': params['detalle'],
+        if (params['urgencia'] != null) 'urgencia': params['urgencia'],
+        if (params['pago'] != null) 'pago': params['pago'],
+        if (params['fecha'] != null) 'fecha': params['fecha'],
+        if (params['hora'] != null) 'hora': params['hora'],
+      };
+
+      return await _llenarYNavegar({'screen': 'reserva', 'data': datos});
+    } catch (e) {
+      return {'success': false, 'message': 'Error navegando a reserva: $e'};
+    }
+  }
+
+  /// Navega a la pantalla de chat detallado
+  Future<Map<String, dynamic>> _navegarAChat(Map<String, dynamic> params) async {
+    try {
+      final conversationId = params['conversationId'] as String?;
+      final titulo = params['titulo'] as String? ?? 'Chat';
+
+      if (conversationId == null || conversationId.isEmpty) {
+        return {'success': false, 'message': 'ID de conversación no especificado'};
+      }
+
+      final datos = {
+        'conversationId': conversationId,
+        'titulo': titulo,
+        if (params['mensaje'] != null) 'mensaje': params['mensaje'],
+      };
+
+      return await _llenarYNavegar({'screen': 'chat', 'data': datos});
+    } catch (e) {
+      return {'success': false, 'message': 'Error navegando a chat: $e'};
+    }
+  }
+
+  /// Navega a la pantalla de perfil con datos pre-rellenados
+  Future<Map<String, dynamic>> _navegarAPerfil(Map<String, dynamic> params) async {
+    try {
+      final datos = <String, dynamic>{
+        if (params['nombre'] != null) 'nombre': params['nombre'],
+        if (params['telefono'] != null) 'telefono': params['telefono'],
+        if (params['direccion'] != null) 'direccion': params['direccion'],
+      };
+
+      return await _llenarYNavegar({'screen': 'perfil', 'data': datos});
+    } catch (e) {
+      return {'success': false, 'message': 'Error navegando a perfil: $e'};
+    }
+  }
+
+  /// Navega a la pantalla de mensajes
+  Future<Map<String, dynamic>> _navegarAMensajes(Map<String, dynamic> params) async {
+    try {
+      final datos = <String, dynamic>{
+        if (params['search'] != null) 'search': params['search'],
+        if (params['tabIndex'] != null) 'tabIndex': params['tabIndex'],
+      };
+
+      return await _llenarYNavegar({'screen': 'mensajes', 'data': datos});
+    } catch (e) {
+      return {'success': false, 'message': 'Error navegando a mensajes: $e'};
+    }
+  }
+
+  /// Navega a la pantalla de configuración
+  Future<Map<String, dynamic>> _navegarASettings(Map<String, dynamic> params) async {
+    try {
+      if (_navigationCallback == null) {
+        return {'success': false, 'message': 'Navegación no disponible'};
+      }
+
+      await _navigationCallback!('settings');
+      return {
+        'success': true,
+        'message': 'Navegando a configuración ✓',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error navegando a configuración: $e'};
+    }
+  }
+
+  /// Detecta frases naturales que signifiquen lo mismo que una acción
+  /// y devuelve una lista de comandos a ejecutar
+  List<Map<String, dynamic>> detectarAccionesEnTexto(String texto) {
+    final comandos = <Map<String, dynamic>>[];
+    final textoLower = texto.toLowerCase();
+
+    // Mapa de patrones → comandos
+    const acciones = {
+      // Navegación
+      'ir a reserv': 'irAReserva',
+      'abre la reserv': 'irAReserva',
+      'voy a reserv': 'irAReserva',
+      'quiero reserv': 'irAReserva',
+      'hacer reserv': 'irAReserva',
+      'ir a chat': 'irAChat',
+      'abre chat': 'irAChat',
+      'voy a chat': 'irAChat',
+      'ir al perfil': 'irAlPerfil',
+      'abre el perfil': 'irAlPerfil',
+      'voy al perfil': 'irAlPerfil',
+      'mi perfil': 'irAlPerfil',
+      'ir a mensaje': 'irAMensajes',
+      'abre mensaje': 'irAMensajes',
+      'voy a mensaje': 'irAMensajes',
+      'ver mensaje': 'irAMensajes',
+      'ir a config': 'irAConfiguracion',
+      'abre config': 'irAConfiguracion',
+      'voy a config': 'irAConfiguracion',
+      'ajuste': 'irAConfiguracion',
+      // Perfil
+      'cambiar nombre': 'actualizarPerfil',
+      'cambiar teléfono': 'actualizarPerfil',
+      'editar perfil': 'actualizarPerfil',
+      'actualizar perfil': 'actualizarPerfil',
+      // Mensajes
+      'enviar mensaje': 'enviarMensaje',
+      'mandar mensaje': 'enviarMensaje',
+      'escribir mensaje': 'enviarMensaje',
+      // Búsqueda
+      'buscar': 'buscar',
+      'búsqueda': 'buscar',
+      // Información
+      'mostrar info': 'obtenerInfo',
+      'obtener información': 'obtenerInfo',
+      'ver información': 'obtenerInfo',
+      // Modo Enigma
+      'activar enigma': 'establecerModoEnigma',
+      'desactivar enigma': 'establecerModoEnigma',
+      'modo enigma': 'establecerModoEnigma',
+    };
+
+    // Buscar patrones en el texto
+    acciones.forEach((patron, accion) {
+      if (textoLower.contains(patron)) {
+        final comando = <String, dynamic>{'action': accion};
+
+        // Agregar parámetros específicos según la acción
+        if (accion == 'actualizarPerfil') {
+          if (textoLower.contains('nombre')) {
+            comando['params'] = {'field': 'nombre', 'value': _extraerValor(texto, 'nombre')};
+          } else if (textoLower.contains('teléfono')) {
+            comando['params'] = {'field': 'telefono', 'value': _extraerValor(texto, 'teléfono')};
+          }
+        } else if (accion == 'enviarMensaje') {
+          // Extraer mensaje si está disponible
+          final mensaje = _extraerValor(texto, 'mensaje');
+          if (mensaje.isNotEmpty) {
+            comando['params'] = {'texto': mensaje};
+          }
+        } else if (accion == 'buscar') {
+          // Extraer término de búsqueda
+          final termino = _extraerTerminoBusqueda(texto);
+          if (termino.isNotEmpty) {
+            comando['params'] = {'query': termino};
+          }
+        } else if (accion == 'establecerModoEnigma') {
+          final activar = textoLower.contains('activar');
+          comando['params'] = {'active': activar};
+        } else {
+          comando['params'] = {};
+        }
+
+        // Evitar duplicados
+        if (!comandos.any((cmd) => cmd['action'] == accion)) {
+          comandos.add(comando);
+        }
+      }
+    });
+
+    return comandos;
+  }
+
+  /// Extrae un valor que sigue a una palabra clave
+  String _extraerValor(String texto, String palabra) {
+    final regex = RegExp('$palabra[\\s:]*([^.!?,;]+)', caseSensitive: false);
+    final match = regex.firstMatch(texto);
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1)!.trim();
+    }
+    return '';
+  }
+
+  /// Extrae el término a buscar del texto
+  String _extraerTerminoBusqueda(String texto) {
+    final regex = RegExp(r'buscar\s+([^.!?,;]+)', caseSensitive: false);
+    final match = regex.firstMatch(texto);
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1)!.trim();
+    }
+    return '';
   }
 }
