@@ -1351,6 +1351,268 @@ app.delete('/storage/:key', async (req, res) => {
   }
 });
 
+// =============================================================================
+// CALENDARIO DE TRABAJADORES
+// Coleccion: usuarios/{uid}/eventos/{eventoId}
+// =============================================================================
+
+const HORARIO_INICIO = 8;   // 8am
+const HORARIO_FIN    = 20;  // 8pm
+
+function validarEventoBody(body) {
+  const { titulo, inicio, fin, tipo, cliente, notas } = body;
+  if (!titulo || typeof titulo !== 'string' || !titulo.trim()) {
+    return 'titulo es requerido';
+  }
+  if (!inicio || isNaN(Date.parse(inicio))) {
+    return 'inicio debe ser una fecha ISO valida';
+  }
+  if (!fin || isNaN(Date.parse(fin))) {
+    return 'fin debe ser una fecha ISO valida';
+  }
+  const dtInicio = new Date(inicio);
+  const dtFin    = new Date(fin);
+  if (dtFin <= dtInicio) {
+    return 'fin debe ser despues de inicio';
+  }
+  if (!['servicio', 'bloqueo'].includes(tipo)) {
+    return 'tipo debe ser servicio o bloqueo';
+  }
+  return null;
+}
+
+async function hayConflictoFirestore(col, inicio, fin, excluirId = null) {
+  const snap = await col
+    .where('eliminado', '==', false)
+    .where('estado', '!=', 'cancelado')
+    .get();
+
+  for (const doc of snap.docs) {
+    if (excluirId && doc.id === excluirId) continue;
+    const d = doc.data();
+    const eInicio = d.inicio.toDate();
+    const eFin    = d.fin.toDate();
+    if (inicio < eFin && fin > eInicio) return true;
+  }
+  return false;
+}
+
+// GET /calendario/eventos — eventos del trabajador autenticado
+app.get('/calendario/eventos', authenticateToken, async (req, res) => {
+  try {
+    const col  = db.collection('usuarios').doc(req.firebaseUid).collection('eventos');
+    const snap = await col.where('eliminado', '==', false).get();
+    const eventos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json(eventos);
+  } catch (err) {
+    console.error('GET /calendario/eventos', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /calendario/eventos — trabajador crea evento o bloqueo
+app.post('/calendario/eventos', authenticateToken, async (req, res) => {
+  const error = validarEventoBody(req.body);
+  if (error) return res.status(400).json({ error });
+
+  const { titulo, inicio, fin, tipo, cliente = '-', notas = '', estado = 'confirmado' } = req.body;
+  const dtInicio = new Date(inicio);
+  const dtFin    = new Date(fin);
+
+  try {
+    const col = db.collection('usuarios').doc(req.firebaseUid).collection('eventos');
+
+    if (await hayConflictoFirestore(col, dtInicio, dtFin)) {
+      return res.status(409).json({ error: 'El horario se solapa con otro evento existente' });
+    }
+
+    const ref = await col.add({
+      titulo: titulo.trim(),
+      cliente,
+      inicio: admin.firestore.Timestamp.fromDate(dtInicio),
+      fin:    admin.firestore.Timestamp.fromDate(dtFin),
+      tipo,
+      estado,
+      notas,
+      eliminado: false,
+      creadoEn:  admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(201).json({ id: ref.id });
+  } catch (err) {
+    console.error('POST /calendario/eventos', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /calendario/eventos/:id — actualizar evento del trabajador autenticado
+app.put('/calendario/eventos/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { estado, titulo, inicio, fin, notas } = req.body;
+
+  try {
+    const col     = db.collection('usuarios').doc(req.firebaseUid).collection('eventos');
+    const docRef  = col.doc(id);
+    const snap    = await docRef.get();
+
+    if (!snap.exists) return res.status(404).json({ error: 'Evento no encontrado' });
+    if (snap.data().eliminado) return res.status(404).json({ error: 'Evento eliminado' });
+
+    const cambios = {};
+
+    if (estado) {
+      const estadosValidos = ['pendiente', 'confirmado', 'enCurso', 'completado', 'cancelado'];
+      if (!estadosValidos.includes(estado)) {
+        return res.status(400).json({ error: 'estado invalido' });
+      }
+      cambios.estado = estado;
+    }
+
+    if (titulo) cambios.titulo = titulo.trim();
+    if (notas !== undefined) cambios.notas = notas;
+
+    if (inicio || fin) {
+      const dtInicio = new Date(inicio ?? snap.data().inicio.toDate());
+      const dtFin    = new Date(fin    ?? snap.data().fin.toDate());
+      if (dtFin <= dtInicio) {
+        return res.status(400).json({ error: 'fin debe ser despues de inicio' });
+      }
+      if (await hayConflictoFirestore(col, dtInicio, dtFin, id)) {
+        return res.status(409).json({ error: 'El horario se solapa con otro evento existente' });
+      }
+      cambios.inicio = admin.firestore.Timestamp.fromDate(dtInicio);
+      cambios.fin    = admin.firestore.Timestamp.fromDate(dtFin);
+    }
+
+    cambios.actualizadoEn = admin.firestore.FieldValue.serverTimestamp();
+    await docRef.update(cambios);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /calendario/eventos/:id', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /calendario/eventos/:id — soft delete
+app.delete('/calendario/eventos/:id', authenticateToken, async (req, res) => {
+  try {
+    const docRef = db
+      .collection('usuarios').doc(req.firebaseUid)
+      .collection('eventos').doc(req.params.id);
+
+    const snap = await docRef.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Evento no encontrado' });
+
+    await docRef.update({
+      eliminado:    true,
+      eliminadoEn:  admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /calendario/eventos/:id', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /calendario/disponibilidad/:trabajadorId?fecha=YYYY-MM-DD
+// Publico: retorna bloques libres del trabajador en una fecha dada
+app.get('/calendario/disponibilidad/:trabajadorId', async (req, res) => {
+  const { trabajadorId } = req.params;
+  const fechaStr = req.query.fecha;
+
+  if (!fechaStr || isNaN(Date.parse(fechaStr))) {
+    return res.status(400).json({ error: 'Parametro fecha requerido (YYYY-MM-DD)' });
+  }
+
+  const fecha = new Date(fechaStr);
+  const diaInicio = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), HORARIO_INICIO, 0, 0);
+  const diaFin    = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), HORARIO_FIN,    0, 0);
+  const siguiente = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1);
+
+  try {
+    const col  = db.collection('usuarios').doc(trabajadorId).collection('eventos');
+    const snap = await col
+      .where('eliminado', '==', false)
+      .where('inicio', '>=', admin.firestore.Timestamp.fromDate(new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())))
+      .where('inicio', '<',  admin.firestore.Timestamp.fromDate(siguiente))
+      .get();
+
+    const ocupados = snap.docs
+      .map(d => ({ inicio: d.data().inicio.toDate(), fin: d.data().fin.toDate(), estado: d.data().estado }))
+      .filter(e => e.estado !== 'cancelado')
+      .sort((a, b) => a.inicio - b.inicio);
+
+    const libres = [];
+    let cursor = diaInicio;
+
+    for (const e of ocupados) {
+      if (e.inicio > cursor) {
+        libres.push({ inicio: cursor.toISOString(), fin: e.inicio.toISOString() });
+      }
+      if (e.fin > cursor) cursor = e.fin;
+    }
+    if (cursor < diaFin) {
+      libres.push({ inicio: cursor.toISOString(), fin: diaFin.toISOString() });
+    }
+
+    res.json({ trabajadorId, fecha: fechaStr, bloquesLibres: libres });
+  } catch (err) {
+    console.error('GET /calendario/disponibilidad', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /calendario/reserva — cliente crea una reserva en el calendario del trabajador
+// Requiere autenticacion del cliente
+app.post('/calendario/reserva', authenticateToken, async (req, res) => {
+  const { trabajadorId, inicio, fin, titulo, notas = '' } = req.body;
+
+  if (!trabajadorId) return res.status(400).json({ error: 'trabajadorId requerido' });
+
+  const errorBody = validarEventoBody({ titulo, inicio, fin, tipo: 'servicio' });
+  if (errorBody) return res.status(400).json({ error: errorBody });
+
+  const dtInicio = new Date(inicio);
+  const dtFin    = new Date(fin);
+
+  try {
+    // Verificar que el trabajador existe
+    const trabajadorSnap = await db.collection('usuarios').doc(trabajadorId).get();
+    if (!trabajadorSnap.exists) {
+      return res.status(404).json({ error: 'Trabajador no encontrado' });
+    }
+
+    // Obtener nombre del cliente
+    const clienteSnap = await db.collection('usuarios').doc(req.firebaseUid).get();
+    const clienteData  = clienteSnap.exists ? clienteSnap.data() : {};
+    const nombreCliente = clienteData.nombre || clienteData.email || req.firebaseUid;
+
+    const col = db.collection('usuarios').doc(trabajadorId).collection('eventos');
+
+    if (await hayConflictoFirestore(col, dtInicio, dtFin)) {
+      return res.status(409).json({ error: 'El trabajador no esta disponible en ese horario' });
+    }
+
+    const ref = await col.add({
+      titulo:     titulo.trim(),
+      cliente:    nombreCliente,
+      clienteId:  req.firebaseUid,
+      inicio:     admin.firestore.Timestamp.fromDate(dtInicio),
+      fin:        admin.firestore.Timestamp.fromDate(dtFin),
+      tipo:       'servicio',
+      estado:     'pendiente',
+      notas,
+      eliminado:  false,
+      creadoEn:   admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(201).json({ id: ref.id, mensaje: 'Reserva creada, pendiente de confirmacion del trabajador' });
+  } catch (err) {
+    console.error('POST /calendario/reserva', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Puerto: ${PORT}`);
