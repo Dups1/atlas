@@ -197,3 +197,4 @@ Los diagnósticos de análisis que ya existan en el proyecto no se corrigen medi
 
 - [Configuración de Firebase](docs/configuracion-firebase.md)
 - [Guía breve anterior](docs/Leeme.md)
+- [Entregable de Ojo de Prolog (PDF)](docs/Ojo%20de%20Prolog%20entregable.pdf)
