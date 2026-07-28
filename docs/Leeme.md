@@ -1,23 +1,5 @@
-# Comandos Flutter y area Laboratorio
+# Documentación de Fixi
 
-## Comandos utiles (desde la raiz del repo)
+La documentación principal, la arquitectura y la guía de ejecución están en el [README de Fixi](../README.md).
 
-|                 Accion                               |    Comando                       |
-|                 ------                               |   ---------                      |
-|           Dependencias                               | `flutter pub get`                |
-| Analisis estatico                                    | `dart analyze lib`               |
-| Tests                                                | `flutter test`                   |
-| Ejecutar en Chrome                                   | `flutter run -d chrome`          |
-| Ejecutar en Android (dispositivo/emulador)           | `flutter run -d android`         |
-| Ejecutar en iOS (simulador/dispositivo)              | `flutter run -d ios`             |
-| Web con servidor propio (cualquier host por defecto) | `flutter run -d web-server`      |
-
-### Web + ubicacion (localhost seguro)
-
-Para que la geolocalizacion en navegador funcione con origen seguro, arranca el servidor web ligado a `localhost`:
-
-```bash
-flutter run -d web-server --web-hostname localhost --web-port 8090
-```
-
-#Abre la URL que muestre Flutter, por ejemplo `http://localhost:8080`.
+Para crear una infraestructura propia, consulta la [guía de configuración de Firebase](configuracion-firebase.md).
