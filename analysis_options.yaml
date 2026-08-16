@@ -1,1 +1,6 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    file_names: ignore
+    camel_case_types: ignore

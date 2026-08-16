@@ -1,0 +1,34 @@
+{"users": [
+{
+  "localId": "EsPP2S999waxsV3D95znl6iq9jS2",
+  "email": "davidurielps1@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "NQxW/cMRrG+tF6QNhCj5SytOV4bxxao101QQQoXA01ohw4IUEHrTphb8JWfnyXPkEjObodFogbpGz7ywdb+9oA==",
+  "salt": "+hpE2uA/A0l8zA==",
+  "lastSignedInAt": "1778955910443",
+  "createdAt": "1778048466703",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "FV3t2rxjWIMJEP0CdQphgE5AxyF3",
+  "email": "davidurielzas@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "rq9zOdEA6G1tD94LUdvzrIdPshZ/8daQxb/7TcDOTg6lo+ecOZgzAzxCrss/hTnD46bTy89EKBsZEVPLQIcJvw==",
+  "salt": "GBHhtKeqFQTFww==",
+  "lastSignedInAt": "1779969785727",
+  "createdAt": "1778048427885",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "zes3cKb6KMTIfH3WBsqHPqCwGzQ2",
+  "email": "lopezgalllegosedwinjose@gmail.com",
+  "emailVerified": false,
+  "passwordHash": "AF3WvYgdXJNuxN/y7IdmxZrsEE3PIuJI8TpqUGCR4KQM/nNwhd1AGcrUL5CWLqHyWpXo8SNG871bVJNMwpI+Zw==",
+  "salt": "l+nUTh63nZ6BKA==",
+  "lastSignedInAt": "1778477987500",
+  "createdAt": "1778477986482",
+  "disabled": false,
+  "providerUserInfo": []
+}]}
