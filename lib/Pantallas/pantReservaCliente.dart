@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/ia/servicioRellenoAgente.dart';
 import '../Servicios/reservaciones/servicioReservaciones.dart';
 
@@ -101,18 +102,33 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
         : _horaSeleccionada!.format(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reserva')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _sectionTitle('Resumen del servicio'),
-                Card(
-                  child: Padding(
+      backgroundColor: TemaFixi.colorFondo(context),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Reserva'),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: TemaFixi.gradienteFondo(context),
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _sectionTitle('Resumen del servicio'),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,14 +147,13 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _sectionTitle('Fecha y hora'),
-                _cardFechaHora(fechaLabel, horaLabel),
-                const SizedBox(height: 12),
-                _sectionTitle('Ubicacion'),
-                Card(
-                  child: Padding(
+                  const SizedBox(height: 12),
+                  _sectionTitle('Fecha y hora'),
+                  _cardFechaHora(fechaLabel, horaLabel),
+                  const SizedBox(height: 12),
+                  _sectionTitle('Ubicacion'),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       children: [
@@ -172,11 +187,10 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _sectionTitle('Detalles del problema'),
-                Card(
-                  child: Padding(
+                  const SizedBox(height: 12),
+                  _sectionTitle('Detalles del problema'),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       children: [
@@ -215,11 +229,10 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _sectionTitle('Pago y confirmacion'),
-                Card(
-                  child: Padding(
+                  const SizedBox(height: 12),
+                  _sectionTitle('Pago y confirmacion'),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       children: [
@@ -261,29 +274,28 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _loading ? null : _confirmarReserva,
-                            icon: _loading
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.check_circle_outline),
-                            label: Text(
-                              _loading ? 'Confirmando...' : 'Confirmar reserva',
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loading ? null : _confirmarReserva,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Confirmar reserva',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -292,10 +304,10 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
   }
 
   Widget _cardFechaHora(String fechaLabel, String horaLabel) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: LayoutBuilder(
+    return Container(
+      decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
+      padding: const EdgeInsets.all(14),
+      child: LayoutBuilder(
           builder: (context, constraints) {
             final compacto = constraints.maxWidth < 520;
             final botonFecha = OutlinedButton.icon(
@@ -333,7 +345,6 @@ class _pantallaReservaClienteState extends State<pantallaReservaCliente> {
             );
           },
         ),
-      ),
     );
   }
 

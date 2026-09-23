@@ -22,6 +22,32 @@ class portafolioProyecto {
     required this.costoRango,
     required this.fecha,
   });
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'titulo': titulo,
+    'categoria': categoria,
+    'descripcion': descripcion,
+    'imagenAntes': imagenAntes,
+    'imagenDespues': imagenDespues,
+    'materiales': materiales,
+    'tiempo': tiempo,
+    'costoRango': costoRango,
+    'fecha': fecha,
+  };
+
+  factory portafolioProyecto.fromMap(Map<String, dynamic> map) => portafolioProyecto(
+    id: (map['id'] ?? '').toString(),
+    titulo: (map['titulo'] ?? '').toString(),
+    categoria: (map['categoria'] ?? 'General').toString(),
+    descripcion: (map['descripcion'] ?? '').toString(),
+    imagenAntes: (map['imagenAntes'] ?? '').toString(),
+    imagenDespues: (map['imagenDespues'] ?? map['imagen'] ?? map['url'] ?? '').toString(),
+    materiales: (map['materiales'] ?? '').toString(),
+    tiempo: (map['tiempo'] ?? '').toString(),
+    costoRango: (map['costoRango'] ?? '').toString(),
+    fecha: (map['fecha'] ?? '').toString(),
+  );
 }
 
 class portafolioMockService {

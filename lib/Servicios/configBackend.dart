@@ -2,5 +2,5 @@
 class configBackend {
   configBackend._();
 
-  static const String urlBase = 'https://backend-atlas-gwxq.onrender.com';
+  static const String urlBase = 'https://backend-atlas-fvaa.onrender.com';
 }

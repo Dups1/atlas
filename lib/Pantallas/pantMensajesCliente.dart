@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/autenticacion/autenticacionStorage.dart';
 import '../Servicios/mensajes/servicioMensajes.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
+import '../widgets/avatarUsuarioFixi.dart';
 import 'pantChatDetCliente.dart';
 
 class pantallaMensajesCliente extends StatefulWidget {
@@ -79,37 +81,44 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Mensajes'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
+          preferredSize: const Size.fromHeight(52),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
             child: Container(
+              height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(14),
+                color: TemaFixi.colorSuperficieSecundaria(context),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.blueGrey.withValues(alpha: 0.12),
+                  color: TemaFixi.colorBorde(context),
+                  width: 1,
                 ),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Colors.blueGrey.shade600,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+                labelColor: Colors.white,
+                unselectedLabelColor: TemaFixi.colorSubtitulo(context),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
                 indicator: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
+                  color: TemaFixi.azulFacebook,
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 tabs: const [
                   Tab(text: 'Trabajadores'),
@@ -121,63 +130,67 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
               child: Container(
+                height: 42,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.94),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.blueGrey.withValues(alpha: 0.12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  color: TemaFixi.colorSuperficieSecundaria(context),
+                  borderRadius: BorderRadius.circular(21),
                 ),
-                padding: const EdgeInsets.all(10),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) =>
-                      setState(() => _search = v.trim().toLowerCase()),
-                  decoration: InputDecoration(
-                    hintText: 'Buscar chat',
-                    hintStyle: TextStyle(color: Colors.blueGrey.shade500),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.blueGrey.shade600,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.search_rounded,
+                      color: TemaFixi.colorSubtitulo(context),
+                      size: 20,
                     ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFF),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.blueGrey.withValues(alpha: 0.2),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (v) =>
+                            setState(() => _search = v.trim().toLowerCase()),
+                        style: TextStyle(
+                          color: TemaFixi.colorTextoPrincipal(context),
+                          fontSize: 14,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Buscar chat...',
+                          hintStyle: TextStyle(
+                            color: TemaFixi.colorSubtitulo(context),
+                            fontSize: 13.5,
+                          ),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
                       ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.blueGrey.withValues(alpha: 0.16),
+                    if (_searchController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.cancel_rounded, size: 18),
+                        color: TemaFixi.colorSubtitulo(context),
+                        splashRadius: 16,
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _search = '');
+                        },
                       ),
-                    ),
-                  ),
+                    const SizedBox(width: 4),
+                  ],
                 ),
               ),
             ),
@@ -299,7 +312,6 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
         final c = list[i];
         final titulo = c.tituloLista(miUid, vistaCliente: vistaCliente);
         final fecha = c.updatedAt ?? DateTime.now();
-        final avatarColor = _colorAvatar(titulo);
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -310,25 +322,14 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                   builder: (_) => pantallaChatDetalleCliente(
                     conversationId: c.id,
                     tituloAppBar: titulo,
+                    otroUid: c.otroUid(miUid),
+                    fotoUrl: c.fotoLista(miUid, vistaCliente: vistaCliente),
                   ),
                 ),
               );
             },
             child: Ink(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.blueGrey.withValues(alpha: 0.1),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
+              decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -336,18 +337,11 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 23,
-                      backgroundColor: avatarColor.withValues(alpha: 0.15),
-                      child: Text(
-                        titulo.isNotEmpty
-                            ? titulo.substring(0, 1).toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: avatarColor,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                    AvatarUsuarioFixi(
+                      uid: c.otroUid(miUid),
+                      urlFoto: c.fotoLista(miUid, vistaCliente: vistaCliente),
+                      nombre: titulo,
+                      radio: 23,
                     ),
                     const SizedBox(width: 11),
                     Expanded(
@@ -366,12 +360,12 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                           const SizedBox(height: 4),
                           Text(
                             c.ultimoMensaje?.isNotEmpty == true
-                                ? c.ultimoMensaje!
-                                : 'Sin mensajes',
+                                 ? c.ultimoMensaje!
+                                 : 'Sin mensajes',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Colors.blueGrey.shade700,
+                              color: TemaFixi.colorSubtitulo(context),
                               fontSize: 12.5,
                             ),
                           ),
@@ -385,7 +379,7 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                         Text(
                           _hhmm(fecha),
                           style: TextStyle(
-                            color: Colors.blueGrey.shade600,
+                            color: TemaFixi.colorSubtitulo(context),
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
                           ),
@@ -394,7 +388,7 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                         Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
-                          color: Colors.blueGrey.shade400,
+                          color: TemaFixi.colorSubtitulo(context),
                         ),
                       ],
                     ),
@@ -419,18 +413,7 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
         padding: const EdgeInsets.all(16),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: TemaFixi.decoracionTarjeta(context, radio: 20),
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -458,7 +441,7 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
                   subtitulo,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade700,
+                    color: TemaFixi.colorSubtitulo(context),
                     fontSize: 12.5,
                   ),
                 ),
@@ -469,19 +452,6 @@ class _pantallaMensajesClienteState extends State<pantallaMensajesCliente>
         ),
       ),
     );
-  }
-
-  Color _colorAvatar(String seed) {
-    final total = seed.codeUnits.fold<int>(0, (a, b) => a + b);
-    const palette = <Color>[
-      Color(0xFF0EA5E9),
-      Color(0xFF4F46E5),
-      Color(0xFF16A34A),
-      Color(0xFFF59E0B),
-      Color(0xFFDC2626),
-      Color(0xFF0891B2),
-    ];
-    return palette[total % palette.length];
   }
 
   String _hhmm(DateTime d) {

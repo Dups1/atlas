@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/autenticacion/autenticacionStorage.dart';
 import '../Servicios/almacenamiento/selectorArchivo.dart';
 import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
@@ -48,113 +49,132 @@ class _perfilClienteViewState extends State<perfilClienteView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil cliente')),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _perfilFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      backgroundColor: TemaFixi.colorFondo(context),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Perfil cliente'),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: TemaFixi.gradienteFondo(context),
+          ),
+        ),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _perfilFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-          final perfil = _perfilCache ?? snapshot.data ?? {};
-          _perfilCache ??= perfil;
-          final nombre = (perfil['nombre'] ?? 'Sin nombre').toString();
-          final email = (perfil['email'] ?? 'Sin correo').toString();
-          final foto = (perfil['foto'] ?? '').toString();
-          final telefono = (perfil['telefono'] ?? 'Sin telefono').toString();
-          final direccion = (perfil['direccion'] ?? 'Sin direccion').toString();
-          final rol = (perfil['rol'] ?? 'cliente').toString();
+            final perfil = _perfilCache ?? snapshot.data ?? {};
+            _perfilCache ??= perfil;
+            final nombre = (perfil['nombre'] ?? 'Sin nombre').toString();
+            final email = (perfil['email'] ?? 'Sin correo').toString();
+            final foto = (perfil['foto'] ?? '').toString();
+            final telefono = (perfil['telefono'] ?? 'Sin telefono').toString();
+            final direccion = (perfil['direccion'] ?? 'Sin direccion').toString();
+            final rol = (perfil['rol'] ?? 'cliente').toString();
 
-          if (!_fieldsInitialized) {
-            _nombreController.text = _relleno.obtenerConFallback<String>('nombre', nombre);
-            _telefonoController.text = _relleno.obtenerConFallback<String>('telefono', telefono);
-            _relleno.limpiar();
-            _fieldsInitialized = true;
-          }
+            if (!_fieldsInitialized) {
+              _nombreController.text = _relleno.obtenerConFallback<String>('nombre', nombre);
+              _telefonoController.text = _relleno.obtenerConFallback<String>('telefono', telefono);
+              _relleno.limpiar();
+              _fieldsInitialized = true;
+            }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeaderCard(foto, perfil),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _tituloSeccion('Datos de cliente'),
-                        TextField(
-                          controller: _nombreController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person_outline),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeaderCard(foto, perfil),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _tituloSeccion('Datos de cliente'),
+                          TextField(
+                            controller: _nombreController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        _linea('Correo', email, Icons.email_outlined),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _telefonoController,
-                          decoration: const InputDecoration(
-                            labelText: 'Telefono',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.phone_outlined),
+                          const SizedBox(height: 12),
+                          _linea('Correo', email, Icons.email_outlined),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _telefonoController,
+                            decoration: const InputDecoration(
+                              labelText: 'Telefono',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.phone_outlined),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _tituloSeccion('Informacion adicional'),
-                        _linea('Direccion', direccion, Icons.location_on_outlined),
-                        const SizedBox(height: 12),
-                        _linea('Rol', rol, Icons.badge_outlined),
-                      ],
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _tituloSeccion('Informacion adicional'),
+                          _linea('Direccion', direccion, Icons.location_on_outlined),
+                          const SizedBox(height: 12),
+                          _linea('Rol', rol, Icons.badge_outlined),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _savingFields
-                            ? null
-                            : () => _guardarPerfilBasico(perfil),
-                        icon: _savingFields
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.save_outlined),
-                        label: Text(
-                          _savingFields ? 'Guardando...' : 'Guardar cambios',
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _savingFields
+                              ? null
+                              : () => _guardarPerfilBasico(perfil),
+                          icon: _savingFields
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.save_outlined),
+                          label: Text(
+                            _savingFields ? 'Guardando...' : 'Guardar cambios',
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -163,7 +183,7 @@ class _perfilClienteViewState extends State<perfilClienteView> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade700),
+        Icon(icon, size: 18, color: TemaFixi.colorSubtitulo(context)),
         const SizedBox(width: 8),
         Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
         Expanded(child: Text(value)),
@@ -178,10 +198,9 @@ class _perfilClienteViewState extends State<perfilClienteView> {
         padding: const EdgeInsets.only(bottom: 10),
         child: Text(
           text,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: Colors.grey.shade800,
           ),
         ),
       ),
@@ -189,7 +208,8 @@ class _perfilClienteViewState extends State<perfilClienteView> {
   }
 
   Widget _buildHeaderCard(String foto, Map<String, dynamic> perfil) {
-    return Card(
+    return Container(
+      decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

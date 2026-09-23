@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../Config/controladorTema.dart';
+import '../Config/temaFixi.dart';
 import '../Servicios/autenticacion/autenticacionStorage.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
 import '../Servicios/ubicacion/servicioUbicacion.dart';
@@ -30,20 +32,20 @@ class _vistaCuentaState extends State<vistaCuenta> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Cuenta'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: FutureBuilder<Map<String, dynamic>>(
@@ -147,18 +149,7 @@ class _vistaCuentaState extends State<vistaCuenta> {
 
   Widget _panelCard({required BuildContext context, required Widget child}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: TemaFixi.decoracionTarjeta(context),
       padding: const EdgeInsets.all(14),
       child: child,
     );
@@ -172,12 +163,15 @@ class _vistaCuentaState extends State<vistaCuenta> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.blueGrey.shade700),
+        Icon(icon, size: 18, color: TemaFixi.colorSubtitulo(context)),
         const SizedBox(width: 8),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(color: Colors.blueGrey.shade800, fontSize: 13.5),
+              style: TextStyle(
+                color: TemaFixi.colorTextoPrincipal(context),
+                fontSize: 13.5,
+              ),
               children: [
                 TextSpan(
                   text: '$label: ',
@@ -214,9 +208,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
   }
 
   Future<void> _refrescarEstadoPermiso() async {
-    setState(() {
-      _cargandoPermiso = true;
-    });
+    setState(() => _cargandoPermiso = true);
     try {
       final p = await _ubicacion.permisoActual();
       if (!mounted) return;
@@ -281,23 +273,119 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
     }
   }
 
+  Widget _selectorTema(BuildContext context) {
+    final modoActual = ControladorTema.instancia.modo;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Personaliza la apariencia de la aplicacion',
+          style: TextStyle(
+            fontSize: 13,
+            color: TemaFixi.colorSubtitulo(context),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _opcionTema(
+              context: context,
+              icono: Icons.light_mode_outlined,
+              titulo: 'Claro',
+              seleccionado: modoActual == ThemeMode.light,
+              onTap: () => ControladorTema.instancia.cambiarModo(ThemeMode.light),
+            ),
+            const SizedBox(width: 8),
+            _opcionTema(
+              context: context,
+              icono: Icons.dark_mode_outlined,
+              titulo: 'Oscuro',
+              seleccionado: modoActual == ThemeMode.dark,
+              onTap: () => ControladorTema.instancia.cambiarModo(ThemeMode.dark),
+            ),
+            const SizedBox(width: 8),
+            _opcionTema(
+              context: context,
+              icono: Icons.brightness_auto_outlined,
+              titulo: 'Sistema',
+              seleccionado: modoActual == ThemeMode.system,
+              onTap: () => ControladorTema.instancia.cambiarModo(ThemeMode.system),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _opcionTema({
+    required BuildContext context,
+    required IconData icono,
+    required String titulo,
+    required bool seleccionado,
+    required VoidCallback onTap,
+  }) {
+    final primario = Theme.of(context).colorScheme.primary;
+    final esOscuro = TemaFixi.esOscuro(context);
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: seleccionado
+                ? primario.withValues(alpha: esOscuro ? 0.22 : 0.12)
+                : (esOscuro ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: seleccionado ? primario : TemaFixi.colorBorde(context),
+              width: seleccionado ? 1.6 : 1.0,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icono,
+                size: 22,
+                color: seleccionado ? primario : TemaFixi.colorSubtitulo(context),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                titulo,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: seleccionado ? FontWeight.w700 : FontWeight.w500,
+                  color: seleccionado ? primario : TemaFixi.colorSubtitulo(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Configuraciones'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: ListView(
@@ -307,10 +395,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
               context: context,
               titulo: 'Tema',
               icon: Icons.palette_outlined,
-              child: Text(
-                'Claro / Oscuro',
-                style: TextStyle(color: Colors.blueGrey.shade700),
-              ),
+              child: _selectorTema(context),
             ),
             const SizedBox(height: 12),
             _tarjetaSeccion(
@@ -325,10 +410,10 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFF),
+                        color: TemaFixi.colorSuperficieSecundaria(context),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: Colors.blueGrey.withValues(alpha: 0.14),
+                          color: TemaFixi.colorBorde(context),
                         ),
                       ),
                       child: const Text(
@@ -344,7 +429,10 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
                     const SizedBox(height: 8),
                     Text(
                       'Ultima lectura: $_ultimaLectura',
-                      style: const TextStyle(fontSize: 13),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: TemaFixi.colorSubtitulo(context),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 12),
@@ -387,7 +475,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
               icon: Icons.wifi_tethering_outlined,
               child: Text(
                 'WiFi: Fixi WiFi - Latencia 18 ms',
-                style: TextStyle(color: Colors.blueGrey.shade700),
+                style: TextStyle(color: TemaFixi.colorSubtitulo(context)),
               ),
             ),
           ],
@@ -403,18 +491,7 @@ class _vistaConfiguracionesState extends State<vistaConfiguraciones> {
     required Widget child,
   }) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: TemaFixi.decoracionTarjeta(context),
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -444,20 +521,20 @@ class vistaAcerca extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Acerca de'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: Center(
@@ -466,20 +543,7 @@ class vistaAcerca extends StatelessWidget {
             child: Container(
               width: 420,
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.96),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.blueGrey.withValues(alpha: 0.12),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
+              decoration: TemaFixi.decoracionTarjeta(context, radio: 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -503,7 +567,7 @@ class vistaAcerca extends StatelessWidget {
                   Text(
                     'Conecta clientes y trabajadores de forma inteligente.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.blueGrey.shade700),
+                    style: TextStyle(color: TemaFixi.colorSubtitulo(context)),
                   ),
                   const SizedBox(height: 14),
                   Wrap(

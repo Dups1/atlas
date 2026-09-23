@@ -1,6 +1,8 @@
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:web/web.dart' as web;
 
 class PdfDownload {
   const PdfDownload._();
@@ -10,16 +12,18 @@ class PdfDownload {
     required List<int> bytes,
     required String filename,
   }) async {
-    final blob = html.Blob([bytes], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
+    final uint8 = Uint8List.fromList(bytes);
+    final blob = web.Blob([uint8.toJS].toJS, web.BlobPropertyBag(type: 'application/pdf'));
+    final url = web.URL.createObjectURL(blob);
+    final anchor = web.document.createElement('a') as web.HTMLAnchorElement
+      ..href = url
       ..download = filename
       ..style.display = 'none';
 
-    html.document.body?.children.add(anchor);
+    web.document.body?.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    html.Url.revokeObjectUrl(url);
+    web.URL.revokeObjectURL(url);
     return true;
   }
 }

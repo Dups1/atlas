@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../autenticacion/autenticacionStorage.dart';
@@ -37,26 +38,26 @@ class servicioIA {
       throw Exception('Escribe un prompt para el agente.');
     }
 
-    print('[IA] Inicio de solicitud');
-    print('[IA] baseUrl=$baseUrl ruta=$ruta');
-    print('[IA] promptLength=${consulta.length}');
-    print(
+    debugPrint('[IA] Inicio de solicitud');
+    debugPrint('[IA] baseUrl=$baseUrl ruta=$ruta');
+    debugPrint('[IA] promptLength=${consulta.length}');
+    debugPrint(
       '[IA] systemInstructionLength=${(systemInstruction ?? _instruccionSistemaPorDefecto).trim().length}',
     );
-    print(
+    debugPrint(
       '[IA] temperature=$temperature maxOutputTokens=$maxOutputTokens maxContextTokens=$maxContextTokens',
     );
-    print('[IA] historialLength=${historial?.length ?? 0}');
+    debugPrint('[IA] historialLength=${historial?.length ?? 0}');
 
     final token = await _almacen.recuperarToken();
     if (token == null || token.isEmpty) {
-      print('[IA] No hay token disponible');
+      debugPrint('[IA] No hay token disponible');
       throw Exception('No hay token disponible');
     }
-    print('[IA] tokenLength=${token.length}');
+    debugPrint('[IA] tokenLength=${token.length}');
 
     final uri = Uri.parse('$baseUrl$ruta');
-    print('[IA] POST $uri');
+    debugPrint('[IA] POST $uri');
     late final http.Response response;
 
     try {
@@ -77,24 +78,24 @@ class servicioIA {
           if (historial != null && historial.isNotEmpty) 'historial': historial,
         }),
       );
-      print('[IA] Respuesta HTTP ${response.statusCode}');
+      debugPrint('[IA] Respuesta HTTP ${response.statusCode}');
     } catch (e, stackTrace) {
-      print('[IA] Error de conexion: $e');
-      print(stackTrace);
+      debugPrint('[IA] Error de conexion: $e');
+      debugPrint(stackTrace.toString());
       throw Exception('Error de conexion: $e');
     }
 
     if (response.statusCode == 404) {
-      print('[IA] 404 recibido en $uri');
-      print(
+      debugPrint('[IA] 404 recibido en $uri');
+      debugPrint(
         '[IA] Body 404: ${response.body.substring(0, response.body.length > 1000 ? 1000 : response.body.length)}',
       );
       throw Exception('Endpoint no encontrado (404)');
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      print('[IA] Error HTTP ${response.statusCode}');
-      print(
+      debugPrint('[IA] Error HTTP ${response.statusCode}');
+      debugPrint(
         '[IA] Body error: ${response.body.substring(0, response.body.length > 1000 ? 1000 : response.body.length)}',
       );
       throw Exception(_extraerMensajeError(response.body, response.statusCode));
@@ -102,14 +103,14 @@ class servicioIA {
 
     final texto = _extraerTextoRespuesta(response.body);
     if (texto.isEmpty) {
-      print('[IA] Respuesta vacia de Vertex');
-      print(
+      debugPrint('[IA] Respuesta vacia de Vertex');
+      debugPrint(
         '[IA] Body exito: ${response.body.substring(0, response.body.length > 1000 ? 1000 : response.body.length)}',
       );
       throw Exception('Respuesta vacia de Vertex');
     }
 
-    print('[IA] Texto extraido length=${texto.length}');
+    debugPrint('[IA] Texto extraido length=${texto.length}');
 
     final textoConComandos = await _procesarComandosEnRespuesta(texto);
 

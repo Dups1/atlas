@@ -21,12 +21,13 @@ dependencies:
   cloud_firestore: ^6.4.0
   firebase_auth: ^6.5.0
   firebase_messaging: ^16.0.0
-  agora_rtc_engine: ^6.5.0
   permission_handler: ^11.3.1
   crypto: ^3.0.6
   record: ^6.2.0
   just_audio: ^0.10.5
   path_provider: ^2.1.5
+  web: ^1.0.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -35,4 +36,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
 

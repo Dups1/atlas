@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/reservaciones/servicioReservaciones.dart';
 
 class pantallaCalendarioCliente extends StatefulWidget {
@@ -56,27 +57,34 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5FA),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Mis reservas'),
         actions: [
-          IconButton(
-            tooltip: 'Recargar',
-            onPressed: _cargando ? null : _cargarMes,
-            icon: const Icon(Icons.refresh),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: 'Recargar',
+              style: IconButton.styleFrom(
+                backgroundColor: TemaFixi.colorSuperficieSecundaria(context),
+                foregroundColor: TemaFixi.colorTextoPrincipal(context),
+              ),
+              onPressed: _cargando ? null : _cargarMes,
+              icon: const Icon(Icons.refresh, size: 20),
+            ),
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEFF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: Column(
@@ -97,11 +105,7 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        ),
+        decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         child: Row(
           children: [
@@ -177,11 +181,7 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-          ),
+          decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
           child: GridView.builder(
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.all(8),
@@ -192,6 +192,7 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
               crossAxisSpacing: 4,
             ),
             itemBuilder: (context, index) {
+              final dark = TemaFixi.esOscuro(context);
               final day = firstGridDate.add(Duration(days: index));
               final inMonth = day.month == _mesActual.month;
               final selected = _mismoDia(day, _diaSeleccionado);
@@ -203,8 +204,8 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     color: selected
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                        : (inMonth ? Colors.white : Colors.grey.shade100),
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: dark ? 0.25 : 0.14)
+                        : (inMonth ? (dark ? TemaFixi.colorSuperficieSecundaria(context) : Colors.white) : (dark ? Colors.white10 : Colors.grey.shade100)),
                     border: Border.all(
                       color: selected
                           ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
@@ -218,7 +219,9 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
                         '${day.day}',
                         style: TextStyle(
                           fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                          color: inMonth ? Colors.blueGrey.shade900 : Colors.blueGrey.shade300,
+                          color: inMonth
+                              ? (dark ? Colors.white : Colors.blueGrey.shade900)
+                              : (dark ? Colors.white38 : Colors.blueGrey.shade300),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -248,11 +251,7 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        ),
+        decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
         child: Column(
           children: [
             ListTile(
@@ -269,7 +268,7 @@ class _pantallaCalendarioClienteState extends State<pantallaCalendarioCliente> {
                   ? Center(
                       child: Text(
                         'Sin reservas para $title',
-                        style: TextStyle(color: Colors.blueGrey.shade700),
+                        style: TextStyle(color: TemaFixi.colorSubtitulo(context)),
                       ),
                     )
                   : ListView.separated(

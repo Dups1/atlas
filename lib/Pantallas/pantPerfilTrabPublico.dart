@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/calificaciones/servicioCalificaciones.dart';
 import 'navegacionChat.dart';
 import 'pantReservaCliente.dart';
@@ -95,20 +96,20 @@ class _pantallaPerfilTrabajadorPublicoState
         : <String>[];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Perfil trabajador'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: SingleChildScrollView(
@@ -150,7 +151,7 @@ class _pantallaPerfilTrabajadorPublicoState
                         Text(
                           rating.toStringAsFixed(1),
                           style: TextStyle(
-                            color: Colors.blueGrey.shade800,
+                            color: TemaFixi.colorTextoPrincipal(context),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -159,7 +160,7 @@ class _pantallaPerfilTrabajadorPublicoState
                           Text(
                             '(${_contexto!.total})',
                             style: TextStyle(
-                              color: Colors.blueGrey.shade500,
+                              color: TemaFixi.colorSubtitulo(context),
                               fontSize: 12.5,
                             ),
                           ),
@@ -193,7 +194,7 @@ class _pantallaPerfilTrabajadorPublicoState
                     Text(
                       descripcion,
                       style: TextStyle(
-                        color: Colors.blueGrey.shade800,
+                        color: TemaFixi.colorTextoPrincipal(context),
                         height: 1.4,
                       ),
                     ),
@@ -211,16 +212,16 @@ class _pantallaPerfilTrabajadorPublicoState
                       Container(
                         height: 110,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFF),
+                          color: TemaFixi.colorSuperficieSecundaria(context),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.blueGrey.withValues(alpha: 0.14),
+                            color: TemaFixi.colorBorde(context),
                           ),
                         ),
                         child: Center(
                           child: Text(
                             'Sin trabajos publicados aun',
-                            style: TextStyle(color: Colors.blueGrey.shade700),
+                            style: TextStyle(color: TemaFixi.colorSubtitulo(context)),
                           ),
                         ),
                       )
@@ -274,7 +275,7 @@ class _pantallaPerfilTrabajadorPublicoState
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(46),
                         side: BorderSide(
-                          color: Colors.blueGrey.withValues(alpha: 0.2),
+                          color: TemaFixi.colorBorde(context),
                         ),
                       ),
                       onPressed: () {
@@ -293,6 +294,7 @@ class _pantallaPerfilTrabajadorPublicoState
                           context,
                           trabajadorUid: uid,
                           tituloMostrar: nombre,
+                          fotoUrl: foto,
                         );
                       },
                       icon: const Icon(Icons.message_outlined),
@@ -443,18 +445,7 @@ class _pantallaPerfilTrabajadorPublicoState
 
   Widget _panelCard({required Widget child}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.045),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
       padding: const EdgeInsets.all(14),
       child: child,
     );
@@ -483,7 +474,7 @@ class _pantallaPerfilTrabajadorPublicoState
             text,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.blueGrey.shade800,
+              color: TemaFixi.colorTextoPrincipal(context),
               fontWeight: FontWeight.w600,
             ),
           ),

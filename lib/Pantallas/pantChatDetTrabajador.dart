@@ -1,19 +1,34 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 
+import '../Config/temaFixi.dart';
+import '../Servicios/almacenamiento/selectorArchivo.dart';
+import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
 import '../Servicios/autenticacion/autenticacionStorage.dart';
+import '../Servicios/mensajes/grabadorAudioChat.dart';
 import '../Servicios/mensajes/servicioMensajes.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
-import '../widgets/alcanceServicioLlamadas.dart';
-import 'pantLlamadaEmisor.dart';
+import '../widgets/avatarUsuarioFixi.dart';
+import '../widgets/burbujaAudioMensaje.dart';
+import '../widgets/burbujaImagenMensaje.dart';
+import '../widgets/burbujaUbicacionMensaje.dart';
+import '../widgets/textoMensajeConEnlaces.dart';
+import 'pantPortafolioTrabajador.dart';
 
 class pantallaChatDetalleTrabajador extends StatefulWidget {
   final String conversationId;
   final String tituloAppBar;
+  final String? otroUid;
+  final String? fotoUrl;
 
   const pantallaChatDetalleTrabajador({
     super.key,
     required this.conversationId,
     required this.tituloAppBar,
+    this.otroUid,
+    this.fotoUrl,
   });
 
   @override
@@ -26,20 +41,28 @@ class _pantallaChatDetalleTrabajadorState
   final servicioMensajes _mensajes = servicioMensajes();
   final autenticacionStorage _storage = autenticacionStorage();
   final servicioPerfilApi _perfilApi = servicioPerfilApi();
+  final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
+  final GrabadorAudioChat _grabadorAudio = GrabadorAudioChat();
   final TextEditingController _inputController = TextEditingController();
 
   String? _miUid;
   String? _error;
   bool _enviando = false;
+  bool _grabandoAudio = false;
+  int _segundosGrabacion = 0;
 
   @override
   void initState() {
     super.initState();
     _bootstrap();
+    _inputController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _grabadorAudio.dispose();
     _inputController.dispose();
     super.dispose();
   }
@@ -61,36 +84,6 @@ class _pantallaChatDetalleTrabajadorState
     }
   }
 
-  void _abrirLlamada() {
-    if (_miUid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Espera a cargar la sesion')),
-      );
-      return;
-    }
-    final otro = servicioMensajes.otroUidDesdeConversationId(
-      widget.conversationId,
-      _miUid!,
-    );
-    if (otro == null || otro.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo obtener el UID del contacto')),
-      );
-      return;
-    }
-    final servicio = alcanceServicioLlamadas.of(context);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => pantallaLlamadaEmisor(
-          tituloAppBar: 'Llamada',
-          idReceptorInicial: otro,
-          nombreRemotoInicial: widget.tituloAppBar,
-          servicioCompartido: servicio,
-        ),
-      ),
-    );
-  }
-
   Future<void> _send() async {
     final text = _inputController.text.trim();
     if (text.isEmpty || _enviando) return;
@@ -109,32 +102,447 @@ class _pantallaChatDetalleTrabajadorState
     }
   }
 
+  Future<void> _iniciarGrabacionVoz() async {
+    final ok = await _grabadorAudio.iniciarGrabacion(
+      onTick: (segundos) {
+        if (mounted) setState(() => _segundosGrabacion = segundos);
+      },
+    );
+    if (!ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo acceder al micrófono')),
+        );
+      }
+      return;
+    }
+    setState(() {
+      _grabandoAudio = true;
+      _segundosGrabacion = 0;
+    });
+  }
+
+  Future<void> _detenerYEnviarAudio() async {
+    setState(() {
+      _enviando = true;
+      _grabandoAudio = false;
+    });
+    try {
+      final res = await _grabadorAudio.detenerGrabacion();
+      if (res != null && res.bytes.isNotEmpty) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final url = await _almacenamiento.uploadFile(
+          bytes: res.bytes,
+          filename: 'audio_$timestamp.wav',
+          contentType: 'audio/wav',
+        );
+        await _mensajes.enviarMensajeEspecial(
+          conversationId: widget.conversationId,
+          tipo: 'audio',
+          mediaUrl: url,
+          duracionSegundos: res.duracionSegundos,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al enviar audio: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _enviando = false;
+          _segundosGrabacion = 0;
+        });
+      }
+    }
+  }
+
+  Future<void> _cancelarGrabacionVoz() async {
+    await _grabadorAudio.cancelarGrabacion();
+    setState(() {
+      _grabandoAudio = false;
+      _segundosGrabacion = 0;
+    });
+  }
+
+  Future<void> _compartirMultimedia() async {
+    final archivo = await pickImageFile();
+    if (archivo == null) return;
+
+    setState(() => _enviando = true);
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url = await _almacenamiento.uploadFile(
+        bytes: archivo.bytes,
+        filename: 'chat_${timestamp}_${archivo.name}',
+        contentType: archivo.mimeType,
+      );
+      await _mensajes.enviarMensajeEspecial(
+        conversationId: widget.conversationId,
+        tipo: 'imagen',
+        mediaUrl: url,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al enviar imagen: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  Future<void> _compartirUbicacion() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor activa la localización GPS')),
+        );
+      }
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permiso de ubicación denegado')),
+          );
+        }
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El permiso de ubicación está denegado en el sistema'),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _enviando = true);
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      await _mensajes.enviarMensajeEspecial(
+        conversationId: widget.conversationId,
+        tipo: 'ubicacion',
+        latitud: pos.latitude,
+        longitud: pos.longitude,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al obtener ubicación: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  void _abrirMenuAdjuntos() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: TemaFixi.colorFondo(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: TemaFixi.colorBorde(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.image_outlined, color: Colors.blue),
+                  ),
+                  title: Text(
+                    'Foto o Multimedia',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: TemaFixi.colorTextoPrincipal(context),
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Comparte una imagen desde tu dispositivo',
+                    style: TextStyle(
+                      color: TemaFixi.colorSubtitulo(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _compartirMultimedia();
+                  },
+                ),
+                const SizedBox(height: 6),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.location_on_outlined, color: Colors.green),
+                  ),
+                  title: Text(
+                    'Ubicación en tiempo real',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: TemaFixi.colorTextoPrincipal(context),
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Envía tus coordenadas GPS actuales',
+                    style: TextStyle(
+                      color: TemaFixi.colorSubtitulo(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _compartirUbicacion();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _obtenerLinkPortafolio() {
+    final uid = _miUid ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+    final baseUrl = Uri.base.origin.isNotEmpty && !Uri.base.origin.contains('localhost')
+        ? 'https://nexo-4c322.web.app'
+        : (Uri.base.origin.isNotEmpty ? Uri.base.origin : 'https://nexo-4c322.web.app');
+    return '$baseUrl/?portafolio=$uid';
+  }
+
+  void _abrirCompartirPortafolio() {
+    final uid = _miUid ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cargando información del usuario...')),
+      );
+      return;
+    }
+
+    final link = _obtenerLinkPortafolio();
+    final mensajeCompartir =
+        '¡Hola! Te comparto mi portafolio de trabajos en Fixi para que conozcas mis proyectos realizados: $link';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: TemaFixi.colorTarjeta(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: TemaFixi.colorBorde(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.business_center_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Compartir Mi Portafolio',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: TemaFixi.colorTextoPrincipal(context),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Envía tus fotos y proyectos previos al cliente',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: TemaFixi.colorSubtitulo(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: TemaFixi.colorSuperficieSecundaria(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: TemaFixi.colorBorde(context)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enlace directo:',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: TemaFixi.colorSubtitulo(context),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    SelectableText(
+                      link,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: link));
+                        Navigator.of(ctx).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Enlace de portafolio copiado')),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copiar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _inputController.text = mensajeCompartir;
+                        _send();
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Enviar al chat'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const pantallaPortafolioTrabajador(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.visibility_outlined, size: 17),
+                  label: const Text('Ver o editar mis proyectos'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: _avatarColor(
-                widget.tituloAppBar,
-              ).withValues(alpha: 0.15),
-              child: Text(
-                widget.tituloAppBar.isNotEmpty
-                    ? widget.tituloAppBar.substring(0, 1).toUpperCase()
-                    : '?',
-                style: TextStyle(
-                  color: _avatarColor(widget.tituloAppBar),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            AvatarUsuarioFixi(
+              uid: widget.otroUid ??
+                  servicioMensajes.otroUidDesdeConversationId(
+                    widget.conversationId,
+                    _miUid ?? '',
+                  ),
+              urlFoto: widget.fotoUrl,
+              nombre: widget.tituloAppBar,
+              radio: 18,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -144,8 +552,9 @@ class _pantallaChatDetalleTrabajadorState
                   Text(widget.tituloAppBar),
                   Text(
                     'Cliente',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.blueGrey.shade600,
+                    style: TextStyle(
+                      color: TemaFixi.colorSubtitulo(context),
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -155,11 +564,6 @@ class _pantallaChatDetalleTrabajadorState
         ),
         actions: [
           IconButton.filledTonal(
-            onPressed: _abrirLlamada,
-            icon: const Icon(Icons.phone_outlined, size: 20),
-          ),
-          const SizedBox(width: 6),
-          IconButton.filledTonal(
             onPressed: () {},
             icon: const Icon(Icons.location_on_outlined, size: 20),
           ),
@@ -167,11 +571,11 @@ class _pantallaChatDetalleTrabajadorState
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEDF3FC)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: Column(
@@ -183,79 +587,12 @@ class _pantallaChatDetalleTrabajadorState
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.blueGrey.withValues(alpha: 0.12),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 14,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
+                  decoration: TemaFixi.decoracionTarjeta(context, radio: 18),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _inputController,
-                            enabled: !_enviando && _miUid != null,
-                            decoration: InputDecoration(
-                              hintText: 'Escribe un mensaje',
-                              hintStyle: TextStyle(
-                                color: Colors.blueGrey.shade500,
-                              ),
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFF),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.blueGrey.withValues(
-                                    alpha: 0.18,
-                                  ),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.blueGrey.withValues(
-                                    alpha: 0.14,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            onSubmitted: (_) => _send(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          onPressed: _enviando ? null : _send,
-                          style: FilledButton.styleFrom(
-                            shape: const CircleBorder(),
-                            padding: const EdgeInsets.all(13),
-                          ),
-                          child: _enviando
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.send_rounded, size: 20),
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.fromLTRB(6, 6, 10, 6),
+                    child: _grabandoAudio
+                        ? _barraGrabacionAudio(context)
+                        : _barraEntradaTexto(context),
                   ),
                 ),
               ),
@@ -337,60 +674,263 @@ class _pantallaChatDetalleTrabajadorState
             final msg = lista[index];
             final mine = msg.senderUid == _miUid;
             final colorPrimario = Theme.of(context).colorScheme.primary;
+            final dark = TemaFixi.esOscuro(context);
             return Align(
               alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                constraints: const BoxConstraints(maxWidth: 292),
-                decoration: BoxDecoration(
-                  color: mine
-                      ? colorPrimario.withValues(alpha: 0.16)
-                      : Colors.white.withValues(alpha: 0.96),
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(14),
-                    topRight: const Radius.circular(14),
-                    bottomLeft: Radius.circular(mine ? 14 : 4),
-                    bottomRight: Radius.circular(mine ? 4 : 14),
-                  ),
-                  border: Border.all(
-                    color: mine
-                        ? colorPrimario.withValues(alpha: 0.24)
-                        : Colors.blueGrey.withValues(alpha: 0.14),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.035),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(msg.texto),
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        _hhmm(msg.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.blueGrey.shade600,
-                          fontSize: 11,
-                        ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (!mine) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: AvatarUsuarioFixi(
+                        uid: widget.otroUid ?? msg.senderUid,
+                        urlFoto: widget.fotoUrl,
+                        nombre: widget.tituloAppBar,
+                        radio: 14,
                       ),
                     ),
+                    const SizedBox(width: 6),
                   ],
-                ),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    decoration: BoxDecoration(
+                      color: mine
+                          ? colorPrimario.withValues(alpha: dark ? 0.32 : 0.16)
+                          : (dark
+                              ? TemaFixi.colorSuperficieSecundaria(context)
+                              : Colors.white.withValues(alpha: 0.96)),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(14),
+                        topRight: const Radius.circular(14),
+                        bottomLeft: Radius.circular(mine ? 14 : 4),
+                        bottomRight: Radius.circular(mine ? 4 : 14),
+                      ),
+                      border: Border.all(
+                        color: mine
+                            ? colorPrimario.withValues(alpha: 0.35)
+                            : TemaFixi.colorBorde(context),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.035),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _contenidoBurbuja(msg, mine),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _hhmm(msg.createdAt),
+                            style: TextStyle(
+                              color: TemaFixi.colorSubtitulo(context),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _contenidoBurbuja(mensajeRemoto msg, bool mine) {
+    if (msg.tipo == 'imagen' && msg.mediaUrl != null && msg.mediaUrl!.isNotEmpty) {
+      return BurbujaImagenMensaje(
+        mediaUrl: msg.mediaUrl!,
+        texto: msg.texto.isNotEmpty ? msg.texto : null,
+        esMio: mine,
+      );
+    }
+    if (msg.tipo == 'audio' && msg.mediaUrl != null && msg.mediaUrl!.isNotEmpty) {
+      return BurbujaAudioMensaje(
+        mediaUrl: msg.mediaUrl!,
+        duracionSegundos: msg.duracionSegundos,
+        esMio: mine,
+      );
+    }
+    if (msg.tipo == 'ubicacion' && msg.latitud != null && msg.longitud != null) {
+      return BurbujaUbicacionMensaje(
+        latitud: msg.latitud!,
+        longitud: msg.longitud!,
+        texto: msg.texto.isNotEmpty ? msg.texto : null,
+        esMio: mine,
+      );
+    }
+    return TextoMensajeConEnlaces(
+      texto: msg.texto,
+      estiloTexto: TextStyle(
+        color: TemaFixi.colorTextoPrincipal(context),
+        fontSize: 14,
+        height: 1.35,
+      ),
+    );
+  }
+
+  Widget _barraGrabacionAudio(BuildContext context) {
+    final m = (_segundosGrabacion ~/ 60).toString().padLeft(2, '0');
+    final s = (_segundosGrabacion % 60).toString().padLeft(2, '0');
+
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Cancelar grabación',
+          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 24),
+          onPressed: _enviando ? null : _cancelarGrabacionVoz,
+        ),
+        const SizedBox(width: 4),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: const BoxDecoration(
+            color: Colors.redAccent,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$m:$s',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: Colors.redAccent,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Grabando audio...',
+            style: TextStyle(
+              fontSize: 12.5,
+              color: TemaFixi.colorSubtitulo(context),
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: _enviando ? null : _detenerYEnviarAudio,
+          style: FilledButton.styleFrom(
+            shape: const CircleBorder(),
+            padding: const EdgeInsets.all(12),
+          ),
+          child: _enviando
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.send_rounded, size: 20),
+        ),
+      ],
+    );
+  }
+
+  Widget _barraEntradaTexto(BuildContext context) {
+    final tieneTexto = _inputController.text.trim().isNotEmpty;
+    final primario = Theme.of(context).colorScheme.primary;
+
+    return Row(
+      children: [
+        IconButton(
+          tooltip: 'Adjuntar archivo o ubicación',
+          icon: Icon(
+            Icons.add_circle_outline_rounded,
+            color: primario,
+            size: 24,
+          ),
+          onPressed: _enviando || _miUid == null ? null : _abrirMenuAdjuntos,
+        ),
+        IconButton(
+          tooltip: 'Compartir mi portafolio',
+          icon: Icon(
+            Icons.business_center_rounded,
+            color: primario,
+            size: 22,
+          ),
+          onPressed: _miUid == null ? null : _abrirCompartirPortafolio,
+        ),
+        Expanded(
+          child: TextField(
+            controller: _inputController,
+            enabled: !_enviando && _miUid != null,
+            style: TextStyle(
+              color: TemaFixi.colorTextoPrincipal(context),
+            ),
+            decoration: InputDecoration(
+              hintText: 'Escribe un mensaje',
+              hintStyle: TextStyle(
+                color: TemaFixi.colorSubtitulo(context),
+              ),
+              filled: true,
+              fillColor: TemaFixi.colorSuperficieSecundaria(context),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: TemaFixi.colorBorde(context),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: TemaFixi.colorBorde(context),
+                ),
+              ),
+            ),
+            onSubmitted: (_) => _send(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        if (tieneTexto)
+          FilledButton(
+            onPressed: _enviando ? null : _send,
+            style: FilledButton.styleFrom(
+              shape: const CircleBorder(),
+              padding: const EdgeInsets.all(13),
+            ),
+            child: _enviando
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.send_rounded, size: 20),
+          )
+        else
+          IconButton.filledTonal(
+            tooltip: 'Grabar mensaje de voz',
+            onPressed: _enviando || _miUid == null ? null : _iniciarGrabacionVoz,
+            icon: const Icon(Icons.mic_rounded, size: 22),
+          ),
+      ],
     );
   }
 
@@ -400,26 +940,18 @@ class _pantallaChatDetalleTrabajadorState
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
       child: Container(
         height: 54,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.035),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+        decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           scrollDirection: Axis.horizontal,
           itemBuilder: (_, i) => ActionChip(
             label: Text(replies[i]),
-            side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            backgroundColor: const Color(0xFFF8FAFF),
-            labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+            side: BorderSide(color: TemaFixi.colorBorde(context)),
+            backgroundColor: TemaFixi.colorSuperficieSecundaria(context),
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: TemaFixi.colorTextoPrincipal(context),
+            ),
             onPressed: _enviando
                 ? null
                 : () {
@@ -445,18 +977,7 @@ class _pantallaChatDetalleTrabajadorState
         padding: const EdgeInsets.all(16),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: TemaFixi.decoracionTarjeta(context, radio: 20),
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -484,7 +1005,7 @@ class _pantallaChatDetalleTrabajadorState
                   subtitulo,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade700,
+                    color: TemaFixi.colorSubtitulo(context),
                     fontSize: 12.5,
                   ),
                 ),
@@ -495,19 +1016,6 @@ class _pantallaChatDetalleTrabajadorState
         ),
       ),
     );
-  }
-
-  Color _avatarColor(String seed) {
-    final total = seed.codeUnits.fold<int>(0, (a, b) => a + b);
-    const palette = <Color>[
-      Color(0xFF0EA5E9),
-      Color(0xFF4F46E5),
-      Color(0xFF16A34A),
-      Color(0xFFF59E0B),
-      Color(0xFFDC2626),
-      Color(0xFF0891B2),
-    ];
-    return palette[total % palette.length];
   }
 
   String _hhmm(DateTime d) {

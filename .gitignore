@@ -24,6 +24,8 @@ pubspec.lock
 backend-atlas/node_modules/
 backend-atlas/.env
 backend-atlas/.env.*
+backend-atlas/service-account.json
+backend-atlas/*service-account*.json
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.

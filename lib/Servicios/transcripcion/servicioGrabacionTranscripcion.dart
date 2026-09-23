@@ -237,15 +237,15 @@ bool _autoStopping = false;
 				if (a == null) {
 					nivel = 0.0;
 				} else if (a is num) {
-					nivel = (a as num).toDouble();
+					nivel = (a).toDouble();
 				} else {
 					// Prefer 'current' then 'max' then parse fallback
 					final dynamic current = a.current;
 					final dynamic max = a.max;
 					if (current is num) {
-						nivel = (current as num).toDouble();
+						nivel = (current).toDouble();
 					} else if (max is num) {
-						nivel = (max as num).toDouble();
+						nivel = (max).toDouble();
 					} else {
 						final s = a.toString();
 						nivel = double.tryParse(s) ?? 0.0;

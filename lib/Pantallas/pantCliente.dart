@@ -2,17 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/autenticacion/autenticacionStorage.dart';
-import '../Servicios/llamadas/servicioLlamadas.dart';
 import '../Servicios/perfil/servicioPerfilApi.dart';
 import '../Servicios/trabajadores/servicioTrabajadores.dart';
 import '../Servicios/autenticacion/sesionService.dart';
 import '../widgets/alcanceModoEnigma.dart';
-import '../widgets/alcanceServicioLlamadas.dart';
-import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
-import 'pantLaboratorio.dart';
 import 'navegacionChat.dart';
 import 'pantMensajesCliente.dart';
 import 'pantPerfilCliente.dart';
@@ -34,8 +31,6 @@ class _pantallaClienteState extends State<pantallaCliente> {
   final servicioTrabajadores _trabajadoresService = servicioTrabajadores();
   final autenticacionStorage _storage = autenticacionStorage();
   final servicioPerfilApi _perfilApi = servicioPerfilApi();
-  late final servicioLlamadas _servicioLlamadas;
-  bool _servicioLlamadasInicializada = false;
 
   late Future<List<Map<String, dynamic>>> _trabajadoresFuture;
   List<Map<String, dynamic>> _all = [];
@@ -49,33 +44,35 @@ class _pantallaClienteState extends State<pantallaCliente> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_servicioLlamadasInicializada) return;
-    _servicioLlamadas = alcanceServicioLlamadas.of(context);
-    _servicioLlamadasInicializada = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
-    });
-  }
-
-  @override
   void dispose() {
-    if (_servicioLlamadasInicializada) {
-      unawaited(_servicioLlamadas.terminarRecursos());
-    }
     _controller.dispose();
     super.dispose();
   }
 
-  void _filter(String query) {
-    final lower = query.toLowerCase();
+  String _categoriaSeleccionada = 'Todos';
+
+  void _filtrar({String? texto, String? categoria}) {
+    if (categoria != null) {
+      _categoriaSeleccionada = categoria;
+    }
+    final query = (texto ?? _controller.text).trim().toLowerCase();
+    final catFiltro = _categoriaSeleccionada.toLowerCase();
+
     setState(() {
       _filtered = _all.where((w) {
         final nombre = (w['nombre'] ?? '').toString().toLowerCase();
         final cat = (w['categoria'] ?? '').toString().toLowerCase();
-        return nombre.contains(lower) || cat.contains(lower);
+        final descripcion = (w['descripcion'] ?? '').toString().toLowerCase();
+
+        final coincideTexto = query.isEmpty ||
+            nombre.contains(query) ||
+            cat.contains(query) ||
+            descripcion.contains(query);
+
+        final coincideCategoria =
+            catFiltro == 'todos' || cat.contains(catFiltro);
+
+        return coincideTexto && coincideCategoria;
       }).toList();
     });
   }
@@ -123,7 +120,6 @@ class _pantallaClienteState extends State<pantallaCliente> {
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
-    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -134,11 +130,11 @@ class _pantallaClienteState extends State<pantallaCliente> {
 
   Widget _buildDrawerContent({required BuildContext context}) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFF9FBFF), Color(0xFFF1F5FD)],
+          colors: TemaFixi.gradienteFondo(context),
         ),
       ),
       child: ListView(
@@ -146,13 +142,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
         children: [
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.blueGrey.withValues(alpha: 0.12),
-              ),
-            ),
+            decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -212,16 +202,16 @@ class _pantallaClienteState extends State<pantallaCliente> {
   }) {
     final iconColor = warning
         ? const Color(0xFFB91C1C)
-        : Colors.blueGrey.shade700;
+        : TemaFixi.colorSubtitulo(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: TemaFixi.colorTarjetaSolida(context),
         borderRadius: BorderRadius.circular(14),
         child: ListTile(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.12)),
+            side: BorderSide(color: TemaFixi.colorBorde(context)),
           ),
           leading: Icon(icon, color: iconColor),
           title: Text(
@@ -249,18 +239,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
         padding: const EdgeInsets.all(16),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 390),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          decoration: TemaFixi.decoracionTarjeta(context, radio: 20),
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -280,7 +259,10 @@ class _pantallaClienteState extends State<pantallaCliente> {
               Text(
                 titulo,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: TemaFixi.colorTextoPrincipal(context),
+                ),
               ),
               if (subtitulo != null) ...[
                 const SizedBox(height: 5),
@@ -288,7 +270,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
                   subtitulo,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade700,
+                    color: TemaFixi.colorSubtitulo(context),
                     fontSize: 12.5,
                   ),
                 ),
@@ -312,7 +294,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => pantallaPerfilTrabajadorPublico(data: w),
@@ -320,27 +302,21 @@ class _pantallaClienteState extends State<pantallaCliente> {
         ),
         child: Ink(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 14,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
+          decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
           child: Row(
             children: [
               CircleAvatar(
-                radius: 34,
+                radius: 32,
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.primary.withValues(alpha: 0.12),
                 backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
-                child: foto.isEmpty ? const Icon(Icons.person_outline) : null,
+                child: foto.isEmpty
+                    ? Icon(
+                        Icons.person_outline,
+                        color: TemaFixi.colorSubtitulo(context),
+                      )
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -349,9 +325,10 @@ class _pantallaClienteState extends State<pantallaCliente> {
                   children: [
                     Text(
                       nombre,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w800,
+                        color: TemaFixi.colorTextoPrincipal(context),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -360,7 +337,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
                         categoria,
                         style: TextStyle(
                           fontSize: 12.8,
-                          color: Colors.blueGrey.shade700,
+                          color: TemaFixi.colorSubtitulo(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -370,17 +347,21 @@ class _pantallaClienteState extends State<pantallaCliente> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
-                            vertical: 4,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blueGrey.withValues(alpha: 0.08),
+                            color: TemaFixi.colorSuperficieSecundaria(context),
                             borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: TemaFixi.colorBorde(context),
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             subcategoria,
                             style: TextStyle(
                               fontSize: 11.5,
-                              color: Colors.blueGrey.shade700,
+                              color: TemaFixi.colorSubtitulo(context),
                             ),
                           ),
                         ),
@@ -398,7 +379,7 @@ class _pantallaClienteState extends State<pantallaCliente> {
                           calificacion.toStringAsFixed(1),
                           style: TextStyle(
                             fontSize: 12.8,
-                            color: Colors.blueGrey.shade800,
+                            color: TemaFixi.colorTextoPrincipal(context),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -407,8 +388,12 @@ class _pantallaClienteState extends State<pantallaCliente> {
                   ],
                 ),
               ),
-              IconButton.filledTonal(
-                icon: const Icon(Icons.message_outlined),
+              IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: TemaFixi.colorSuperficieSecundaria(context),
+                  foregroundColor: TemaFixi.colorTextoPrincipal(context),
+                ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
                 onPressed: () {
                   final nombre = w['nombre'] as String? ?? 'Trabajador';
                   final uid = uidDesdeMapaUsuario(w);
@@ -436,168 +421,129 @@ class _pantallaClienteState extends State<pantallaCliente> {
 
   @override
   Widget build(BuildContext context) {
-    return escuchaLlamadasEntrantes(
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF4F6FB),
+    return Scaffold(
+      key: _scaffoldKey,
+        backgroundColor: TemaFixi.colorFondo(context),
         appBar: AppBar(
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          backgroundColor: Colors.transparent,
+          backgroundColor: TemaFixi.colorBarraSuperior(context),
           surfaceTintColor: Colors.transparent,
-          title: const Text('Explorar Fixi'),
+          shape: const Border(),
+          title: TemaFixi.logoAppBar(context, height: 32),
           actions: [
             _botonModoEnigma(context),
-            IconButton.filledTonal(
-              icon: const Icon(Icons.science_outlined),
-              tooltip: 'Laboratorio',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: IconButton(
+                tooltip: 'Ajustes',
+                style: IconButton.styleFrom(
+                  backgroundColor: TemaFixi.colorSuperficieSecundaria(context),
+                  foregroundColor: TemaFixi.colorTextoPrincipal(context),
+                ),
+                icon: const Icon(Icons.menu_rounded, size: 20),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
               ),
             ),
-            const SizedBox(width: 6),
-            IconButton.filledTonal(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-            ),
-            const SizedBox(width: 10),
           ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.blueGrey.withValues(alpha: 0.12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(10),
-                child: TextField(
-                  controller: _controller,
-                  onChanged: _filter,
-                  decoration: InputDecoration(
-                    hintText: 'Busca por nombre o categoria',
-                    hintStyle: TextStyle(color: Colors.blueGrey.shade500),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.blueGrey.shade600,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFF),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.blueGrey.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.blueGrey.withValues(alpha: 0.14),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+              colors: TemaFixi.gradienteFondo(context),
             ),
           ),
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _trabajadoresFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _estadoCentrado(
-                  icon: Icons.hourglass_top_rounded,
-                  titulo: 'Cargando trabajadores',
-                  subtitulo:
-                      'Espera un momento mientras preparamos resultados.',
-                  trailing: const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: CircularProgressIndicator(strokeWidth: 2.4),
-                  ),
-                );
-              }
-              if (snapshot.hasError) {
-                return _estadoCentrado(
-                  icon: Icons.error_outline,
-                  titulo: 'No se pudo cargar la lista',
-                  subtitulo: 'Error: ${snapshot.error}',
-                );
-              }
+          child: Column(
+            children: [
+              _buildBarraBusquedaFacebook(context),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _trabajadoresFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return _estadoCentrado(
+                        icon: Icons.hourglass_top_rounded,
+                        titulo: 'Cargando trabajadores',
+                        subtitulo:
+                            'Espera un momento mientras preparamos resultados.',
+                        trailing: const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return _estadoCentrado(
+                        icon: Icons.error_outline,
+                        titulo: 'No se pudo cargar la lista',
+                        subtitulo: 'Error: ${snapshot.error}',
+                      );
+                    }
 
-              final data = snapshot.data ?? [];
-              final trabajadores = data
-                  .where(
-                    (w) =>
-                        (w['rol'] ?? '').toString().toLowerCase() ==
-                        'trabajador',
-                  )
-                  .toList();
+                    final data = snapshot.data ?? [];
+                    final trabajadores = data
+                        .where(
+                          (w) =>
+                              (w['rol'] ?? '').toString().toLowerCase() ==
+                              'trabajador',
+                        )
+                        .toList();
 
-              if (_all.isEmpty && trabajadores.isNotEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() {
-                      _all = trabajadores;
-                      _filtered = trabajadores;
-                    });
-                  }
-                });
-              }
+                    if (_all.isEmpty && trabajadores.isNotEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            _all = trabajadores;
+                            _filtered = trabajadores;
+                          });
+                        }
+                      });
+                    }
 
-              if (_filtered.isEmpty && _controller.text.isEmpty) {
-                if (trabajadores.isEmpty) {
-                  return _estadoCentrado(
-                    icon: Icons.person_search_outlined,
-                    titulo: 'No hay trabajadores registrados',
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  itemCount: trabajadores.length,
-                  itemBuilder: (_, i) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildCard(trabajadores[i]),
-                  ),
-                );
-              }
+                    if (_filtered.isEmpty &&
+                        _controller.text.isEmpty &&
+                        _categoriaSeleccionada == 'Todos') {
+                      if (trabajadores.isEmpty) {
+                        return _estadoCentrado(
+                          icon: Icons.person_search_outlined,
+                          titulo: 'No hay trabajadores registrados',
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                        itemCount: trabajadores.length,
+                        itemBuilder: (_, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _buildCard(trabajadores[i]),
+                        ),
+                      );
+                    }
 
-              if (_filtered.isEmpty) {
-                return _estadoCentrado(
-                  icon: Icons.search_off_rounded,
-                  titulo: 'Sin resultados',
-                  subtitulo: 'Prueba con otro nombre o categoria.',
-                );
-              }
+                    if (_filtered.isEmpty) {
+                      return _estadoCentrado(
+                        icon: Icons.search_off_rounded,
+                        titulo: 'Sin resultados',
+                        subtitulo: _categoriaSeleccionada != 'Todos'
+                            ? 'No se encontraron trabajadores en la categoría "$_categoriaSeleccionada".'
+                            : 'Prueba con otro término de búsqueda.',
+                      );
+                    }
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                itemCount: _filtered.length,
-                itemBuilder: (_, i) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildCard(_filtered[i]),
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildCard(_filtered[i]),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
         endDrawer: Drawer(
@@ -609,6 +555,168 @@ class _pantallaClienteState extends State<pantallaCliente> {
           ),
         ),
         bottomNavigationBar: _buildBottomBar(),
+      );
+  }
+
+  Widget _buildBarraBusquedaFacebook(BuildContext context) {
+    final dark = TemaFixi.esOscuro(context);
+    final bgInput =
+        dark ? TemaFixi.fbSecundarioOscuro : TemaFixi.fbSecundarioClaro;
+    final colorTexto = TemaFixi.colorTextoPrincipal(context);
+    final colorSub = TemaFixi.colorSubtitulo(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: TemaFixi.colorBarraSuperior(context),
+        border: Border(
+          bottom: BorderSide(
+            color: TemaFixi.colorBorde(context).withValues(alpha: 0.7),
+            width: 1,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Barra de búsqueda tipo cápsula / pill oficial de Facebook
+          Container(
+            height: 42,
+            decoration: BoxDecoration(
+              color: bgInput,
+              borderRadius: BorderRadius.circular(21),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.search_rounded,
+                  color: colorSub,
+                  size: 21,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    onChanged: (text) => _filtrar(texto: text),
+                    style: TextStyle(
+                      color: colorTexto,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar en Nexo...',
+                      hintStyle: TextStyle(
+                        color: colorSub,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+                if (_controller.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.cancel_rounded, size: 18),
+                    color: colorSub,
+                    splashRadius: 16,
+                    onPressed: () {
+                      _controller.clear();
+                      _filtrar(texto: '');
+                    },
+                  ),
+                const SizedBox(width: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Pastillas de categoría horizontales estilo Facebook Marketplace
+          _buildPastillasCategorias(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPastillasCategorias(BuildContext context) {
+    final dark = TemaFixi.esOscuro(context);
+    final categorias = const [
+      {'nombre': 'Todos', 'icon': Icons.apps_rounded},
+      {'nombre': 'Plomería', 'icon': Icons.plumbing_rounded},
+      {'nombre': 'Electricidad', 'icon': Icons.bolt_rounded},
+      {'nombre': 'Carpintería', 'icon': Icons.handyman_rounded},
+      {'nombre': 'Limpieza', 'icon': Icons.cleaning_services_rounded},
+      {'nombre': 'Pintura', 'icon': Icons.format_paint_rounded},
+      {'nombre': 'Jardinería', 'icon': Icons.yard_rounded},
+      {'nombre': 'Cerrajería', 'icon': Icons.key_rounded},
+      {'nombre': 'Mecánica', 'icon': Icons.build_circle_rounded},
+    ];
+
+    final azulMeta =
+        dark ? TemaFixi.azulFacebookDark : TemaFixi.azulFacebook;
+
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categorias.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final item = categorias[i];
+          final nombre = item['nombre'] as String;
+          final icon = item['icon'] as IconData;
+          final seleccionada =
+              _categoriaSeleccionada.toLowerCase() == nombre.toLowerCase();
+
+          final colorFondo = seleccionada
+              ? azulMeta
+              : (dark ? TemaFixi.fbSecundarioOscuro : TemaFixi.fbSecundarioClaro);
+
+          final colorTexto = seleccionada
+              ? Colors.white
+              : TemaFixi.colorTextoPrincipal(context);
+
+          final colorIcon = seleccionada
+              ? Colors.white
+              : azulMeta;
+
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(17),
+              onTap: () => _filtrar(categoria: nombre),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: colorFondo,
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 15, color: colorIcon),
+                    const SizedBox(width: 6),
+                    Text(
+                      nombre,
+                      style: TextStyle(
+                        color: colorTexto,
+                        fontSize: 12.5,
+                        fontWeight:
+                            seleccionada ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -617,94 +725,74 @@ class _pantallaClienteState extends State<pantallaCliente> {
     const labels = ['Inicio', 'Mensajes', 'Calendario', 'Perfil'];
     const icons = [
       Icons.home_outlined,
-      Icons.message_outlined,
+      Icons.chat_bubble_outline_rounded,
       Icons.calendar_month_outlined,
-      Icons.person_outline,
+      Icons.person_outline_rounded,
+    ];
+    const activeIcons = [
+      Icons.home_filled,
+      Icons.chat_bubble_rounded,
+      Icons.calendar_month_rounded,
+      Icons.person_rounded,
     ];
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    final isDark = TemaFixi.esOscuro(context);
+    final activeColor =
+        isDark ? TemaFixi.azulFacebookDark : TemaFixi.azulFacebook;
+    final inactiveColor = TemaFixi.colorSubtitulo(context);
+
+    return Container(
+      decoration: TemaFixi.decoracionBarraInferior(context),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 56,
           child: Row(
             children: List.generate(labels.length, (index) {
               final isActive = _selectedIndex == index;
-              final color = isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.blueGrey.shade500;
+              final color = isActive ? activeColor : inactiveColor;
               return Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      setState(() => _selectedIndex = index);
-                      if (index == 1) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const pantallaMensajesCliente(),
-                          ),
-                        );
-                      }
-                      if (index == 2) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const pantallaCalendarioCliente(),
-                          ),
-                        );
-                      }
-                      if (index == 3) {
-                        _openPerfilActual();
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 4,
+                child: InkWell(
+                  onTap: () {
+                    setState(() => _selectedIndex = index);
+                    if (index == 1) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const pantallaMensajesCliente(),
+                        ),
+                      );
+                    }
+                    if (index == 2) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const pantallaCalendarioCliente(),
+                        ),
+                      );
+                    }
+                    if (index == 3) {
+                      _openPerfilActual();
+                    }
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isActive ? activeIcons[index] : icons[index],
+                        size: 22,
+                        color: color,
                       ),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.12)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 3),
+                      Text(
+                        labels[index],
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icons[index], size: 20, color: color),
-                          const SizedBox(height: 3),
-                          Text(
-                            labels[index],
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 11,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               );

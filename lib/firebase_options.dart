@@ -8,13 +8,12 @@ import 'package:flutter/foundation.dart'
 ///
 /// Example:
 /// ```dart
-/// import 'firebaseOptions.dart';
+/// import 'firebase_options.dart';
 /// // ...
 /// await Firebase.initializeApp(
 ///   options: DefaultFirebaseOptions.currentPlatform,
 /// );
 /// ```
-/// hola
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -48,29 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCQ1TZpB_JdVool83faV_P17A1_B_WPUjQ',
-    appId: '1:565070198305:web:d7c89574e0810dd562d560',
-    messagingSenderId: '565070198305',
-    projectId: 'atlas007',
-    authDomain: 'atlas007.firebaseapp.com',
-    storageBucket: 'atlas007.firebasestorage.app',
-    measurementId: 'G-N58TG47VKH',
+    apiKey: 'AIzaSyD4pzzUG7SJMH3QdTUeTkJpf632Qcfm75A',
+    appId: '1:850337504996:web:3be722fb1e709107fad6f1',
+    messagingSenderId: '850337504996',
+    projectId: 'nexo-4c322',
+    authDomain: 'nexo-4c322.firebaseapp.com',
+    storageBucket: 'nexo-4c322.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBmLFOEwa6OX8AhL0lKfbrDkMeQQ1QY0Ho',
-    appId: '1:565070198305:android:7ad9e3553cee9ff562d560',
-    messagingSenderId: '565070198305',
-    projectId: 'atlas007',
-    storageBucket: 'atlas007.firebasestorage.app',
+    apiKey: 'AIzaSyAQ2zcmqqYnmgZBZT44pOPboFEe1rdaNLU',
+    appId: '1:850337504996:android:900f9b7b6509167ffad6f1',
+    messagingSenderId: '850337504996',
+    projectId: 'nexo-4c322',
+    storageBucket: 'nexo-4c322.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC_GDNI0Te56B9QXBAl03FY_OHGvooInZM',
-    appId: '1:565070198305:ios:58fdcc461daa3f7762d560',
-    messagingSenderId: '565070198305',
-    projectId: 'atlas007',
-    storageBucket: 'atlas007.firebasestorage.app',
+    apiKey: 'AIzaSyBv7v2rAjKVoNO09uKDrU2qp6yFHLVJrfo',
+    appId: '1:850337504996:ios:42cda114dc48bcc9fad6f1',
+    messagingSenderId: '850337504996',
+    projectId: 'nexo-4c322',
+    storageBucket: 'nexo-4c322.firebasestorage.app',
     iosBundleId: 'com.orange.atlas.atlas',
   );
 }

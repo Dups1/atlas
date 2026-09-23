@@ -14,6 +14,7 @@ Future<void> abrirChatClienteConTrabajador(
   BuildContext context, {
   required String trabajadorUid,
   required String tituloMostrar,
+  String? fotoUrl,
 }) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   if (trabajadorUid.isEmpty) {
@@ -30,6 +31,8 @@ Future<void> abrirChatClienteConTrabajador(
         builder: (_) => pantallaChatDetalleCliente(
           conversationId: cid,
           tituloAppBar: tituloMostrar,
+          otroUid: trabajadorUid,
+          fotoUrl: fotoUrl,
         ),
       ),
     );
@@ -45,6 +48,7 @@ Future<void> abrirChatTrabajadorConCliente(
   BuildContext context, {
   required String clienteUid,
   required String tituloMostrar,
+  String? fotoUrl,
 }) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   if (clienteUid.isEmpty) {
@@ -61,6 +65,8 @@ Future<void> abrirChatTrabajadorConCliente(
         builder: (_) => pantallaChatDetalleTrabajador(
           conversationId: cid,
           tituloAppBar: tituloMostrar,
+          otroUid: clienteUid,
+          fotoUrl: fotoUrl,
         ),
       ),
     );

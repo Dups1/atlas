@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Config/temaFixi.dart';
 import '../Servicios/autenticacion/authService.dart';
 import '../Servicios/categorias/servicioCategorias.dart';
 import 'pantCliente.dart';
@@ -120,20 +121,20 @@ class _pantallaAuthState extends State<pantallaAuth> {
       labelText: label,
       prefixIcon: Icon(icon),
       filled: true,
-      fillColor: const Color(0xFFF8FAFF),
+      fillColor: TemaFixi.colorSuperficieSecundaria(context),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.18)),
+        borderSide: BorderSide(color: TemaFixi.colorBorde(context)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.14)),
+        borderSide: BorderSide(color: TemaFixi.colorBorde(context)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.65),
-          width: 1.4,
+          color: Theme.of(context).colorScheme.primary,
+          width: 1.6,
         ),
       ),
     );
@@ -146,13 +147,13 @@ class _pantallaAuthState extends State<pantallaAuth> {
     final scheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEFF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: SafeArea(
@@ -163,20 +164,7 @@ class _pantallaAuthState extends State<pantallaAuth> {
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.96),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.blueGrey.withValues(alpha: 0.12),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.055),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
+                  decoration: TemaFixi.decoracionTarjeta(context, radio: 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,16 +196,16 @@ class _pantallaAuthState extends State<pantallaAuth> {
                         _modoLogin ? 'Inicia sesion' : 'Crea tu cuenta',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.blueGrey.shade600,
+                          color: TemaFixi.colorSubtitulo(context),
                         ),
                       ),
                       const SizedBox(height: 24),
                       Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFF),
+                          color: TemaFixi.colorSuperficieSecundaria(context),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: Colors.blueGrey.withValues(alpha: 0.12),
+                            color: TemaFixi.colorBorde(context),
                           ),
                         ),
                         padding: const EdgeInsets.all(4),
@@ -473,7 +461,7 @@ class _pantallaAuthState extends State<pantallaAuth> {
             fontWeight: FontWeight.w700,
             color: activo
                 ? Theme.of(context).colorScheme.primary
-                : Colors.blueGrey.shade700,
+                : TemaFixi.colorSubtitulo(context),
           ),
         ),
       ),

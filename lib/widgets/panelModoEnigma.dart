@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../Pantallas/pantAjustes.dart';
 import '../Pantallas/pantCalendarioTrabajador.dart';
-import '../Pantallas/pantLaboratorio.dart';
 import '../Pantallas/pantMensajesCliente.dart';
 import '../Pantallas/pantPerfilCliente.dart';
 import '../Pantallas/pantReservaCliente.dart';
@@ -170,13 +169,10 @@ class _panelModoEnigmaState extends State<panelModoEnigma> {
         _mensajeError = 'No se pudo consultar la IA: $error';
       });
     } finally {
-      if (!mounted) {
-        _procesandoIA = false;
-        return;
+      _procesandoIA = false;
+      if (mounted) {
+        setState(() {});
       }
-      setState(() {
-        _procesandoIA = false;
-      });
     }
   }
 
@@ -395,14 +391,6 @@ class _panelModoEnigmaState extends State<panelModoEnigma> {
               context,
             ).showSnackBar(SnackBar(content: Text('Error abriendo chat: $e')));
           }
-          break;
-        case 'laboratorio':
-        case 'lab':
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const pantallaLaboratorio(),
-            ),
-          );
           break;
         default:
           debugPrint('⚠️ Pantalla desconocida: $screenName');

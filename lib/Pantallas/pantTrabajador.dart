@@ -2,19 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../Servicios/llamadas/servicioLlamadas.dart';
+import '../Config/temaFixi.dart';
 import '../Servicios/perfil/servicioPerfilFirebase.dart';
 import '../Servicios/almacenamiento/selectorArchivo.dart';
 import '../Servicios/almacenamiento/servicioAlmacenamiento.dart';
 import '../Servicios/categorias/servicioCategorias.dart';
 import '../Servicios/autenticacion/sesionService.dart';
 import '../widgets/alcanceModoEnigma.dart';
-import '../widgets/alcanceServicioLlamadas.dart';
-import '../widgets/escuchaLlamadasEntrantes.dart';
 import 'pantAjustes.dart';
 import 'pantAuth.dart';
 import 'pantCalendarioTrabajador.dart';
-import 'pantLaboratorio.dart';
 import 'navegacionChat.dart';
 import 'pantMensajesTrabajador.dart';
 import 'pantPortafolioTrabajador.dart';
@@ -29,33 +26,11 @@ class pantallaTrabajador extends StatefulWidget {
 class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   final sesionService _sesionService = sesionService();
-  late final servicioLlamadas _servicioLlamadas;
-  bool _servicioLlamadasInicializada = false;
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_servicioLlamadasInicializada) return;
-    _servicioLlamadas = alcanceServicioLlamadas.of(context);
-    _servicioLlamadasInicializada = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _servicioLlamadas.prepararMensajeriaYAutenticacion();
-    });
-  }
-
-  @override
-  void dispose() {
-    if (_servicioLlamadasInicializada) {
-      unawaited(_servicioLlamadas.terminarRecursos());
-    }
-    super.dispose();
   }
 
   Widget _botonModoEnigma(BuildContext context) {
@@ -100,11 +75,11 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
 
   Widget _buildDrawerContent({required BuildContext context}) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFF9FBFF), Color(0xFFF1F5FD)],
+          colors: TemaFixi.gradienteFondo(context),
         ),
       ),
       child: ListView(
@@ -112,13 +87,7 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
         children: [
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.blueGrey.withValues(alpha: 0.12),
-              ),
-            ),
+            decoration: TemaFixi.decoracionTarjeta(context, radio: 16),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -178,16 +147,16 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   }) {
     final iconColor = warning
         ? const Color(0xFFB91C1C)
-        : Colors.blueGrey.shade700;
+        : TemaFixi.colorSubtitulo(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: TemaFixi.colorTarjetaSolida(context),
         borderRadius: BorderRadius.circular(14),
         child: ListTile(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
-            side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.12)),
+            side: BorderSide(color: TemaFixi.colorBorde(context)),
           ),
           leading: Icon(icon, color: iconColor),
           title: Text(
@@ -207,7 +176,6 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
   Future<void> _promptCerrarSesion() async {
     final confirmed = await _sesionService.confirmarCerrarSesion(context);
     if (!confirmed) return;
-    await _servicioLlamadas.terminarRecursos();
     await _sesionService.limpiarSesion();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -231,48 +199,70 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
 
   @override
   Widget build(BuildContext context) {
-    return escuchaLlamadasEntrantes(
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF4F6FB),
+    return Scaffold(
+      key: _scaffoldKey,
+        backgroundColor: TemaFixi.colorFondo(context),
         appBar: AppBar(
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          backgroundColor: Colors.transparent,
+          backgroundColor: TemaFixi.colorBarraSuperior(context),
           surfaceTintColor: Colors.transparent,
-          title: const Text('Panel de control'),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TemaFixi.logoAppBar(context, height: 30),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: TemaFixi.naranjaNexo.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: TemaFixi.naranjaNexo,
+                    width: 1,
+                  ),
+                ),
+                child: const Text(
+                  'Pro',
+                  style: TextStyle(
+                    color: TemaFixi.naranjaNexo,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
           actions: [
             _botonModoEnigma(context),
-            IconButton.filledTonal(
-              icon: const Icon(Icons.science_outlined),
-              tooltip: 'Laboratorio',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const pantallaLaboratorio()),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: IconButton(
+                tooltip: 'Ajustes',
+                style: IconButton.styleFrom(
+                  backgroundColor: TemaFixi.colorSuperficieSecundaria(context),
+                  foregroundColor: TemaFixi.colorTextoPrincipal(context),
+                ),
+                icon: const Icon(Icons.menu_rounded, size: 20),
+                onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
               ),
             ),
-            const SizedBox(width: 6),
-            IconButton.filledTonal(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-            ),
-            const SizedBox(width: 10),
           ],
         ),
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+              colors: TemaFixi.gradienteFondo(context),
             ),
           ),
           child: const workerProfileView(embedded: true),
         ),
         endDrawer: _settingsDrawer(),
         bottomNavigationBar: _buildBottomBar(),
-      ),
-    );
+      );
   }
 
   Widget _buildBottomBar() {
@@ -286,106 +276,87 @@ class _pantallaTrabajadorState extends State<pantallaTrabajador> {
     const icons = [
       Icons.space_dashboard_outlined,
       Icons.calendar_month_outlined,
-      Icons.message_outlined,
-      Icons.work_outline,
-      Icons.person_outline,
+      Icons.chat_bubble_outline_rounded,
+      Icons.work_outline_rounded,
+      Icons.person_outline_rounded,
+    ];
+    const activeIcons = [
+      Icons.space_dashboard_rounded,
+      Icons.calendar_month_rounded,
+      Icons.chat_bubble_rounded,
+      Icons.work_rounded,
+      Icons.person_rounded,
     ];
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    final isDark = TemaFixi.esOscuro(context);
+    final activeColor =
+        isDark ? TemaFixi.azulFacebookDark : TemaFixi.azulFacebook;
+    final inactiveColor = TemaFixi.colorSubtitulo(context);
+
+    return Container(
+      decoration: TemaFixi.decoracionBarraInferior(context),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 56,
           child: Row(
             children: List.generate(labels.length, (index) {
               final isActive = _selectedIndex == index;
-              final color = isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.blueGrey.shade500;
+              final color = isActive ? activeColor : inactiveColor;
               return Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      setState(() => _selectedIndex = index);
-                      if (index == 1) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const pantallaCalendarioTrabajador(),
-                          ),
-                        );
-                      }
-                      if (index == 2) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const pantallaMensajesTrabajador(),
-                          ),
-                        );
-                      }
-                      if (index == 3) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => pantallaPortafolioTrabajador(),
-                          ),
-                        );
-                      }
-                      if (index == 4) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const perfilTrabajadorBasicoView(),
-                          ),
-                        );
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 4,
+                child: InkWell(
+                  onTap: () {
+                    setState(() => _selectedIndex = index);
+                    if (index == 1) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const pantallaCalendarioTrabajador(),
+                        ),
+                      );
+                    }
+                    if (index == 2) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const pantallaMensajesTrabajador(),
+                        ),
+                      );
+                    }
+                    if (index == 3) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => pantallaPortafolioTrabajador(),
+                        ),
+                      );
+                    }
+                    if (index == 4) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const perfilTrabajadorBasicoView(),
+                        ),
+                      );
+                    }
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isActive ? activeIcons[index] : icons[index],
+                        size: 21,
+                        color: color,
                       ),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.12)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 3),
+                      Text(
+                        labels[index],
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10.5,
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icons[index], size: 20, color: color),
-                          const SizedBox(height: 3),
-                          Text(
-                            labels[index],
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 10.8,
-                              fontWeight: isActive
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               );
@@ -815,20 +786,20 @@ class _perfilTrabajadorBasicoViewState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Perfil'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: FutureBuilder<Map<String, dynamic>>(
@@ -892,12 +863,8 @@ class _workerProfileViewState extends State<workerProfileView> {
   late final Future<Map<String, dynamic>> _profileFuture;
   bool _initialized = false;
   bool _uploadingPhoto = false;
-  bool _uploadingGallery = false;
   Map<String, dynamic> _profileData = {};
-  List<String> _gallery = [];
   final servicioAlmacenamiento _almacenamiento = servicioAlmacenamiento();
-
-  static const List<String> _fallbackGallery = [];
 
   String _idPerfilActivo() {
     final id = (_profileData['id'] ?? _profileData['uid'] ?? '')
@@ -944,18 +911,6 @@ class _workerProfileViewState extends State<workerProfileView> {
         Text('reseñas: $reviews', style: const TextStyle(color: Colors.grey)),
       ],
     );
-  }
-
-  List<String> _resolveGallery(dynamic raw) {
-    if (raw is List) {
-      final strings = raw
-          .map((e) => e?.toString())
-          .whereType<String>()
-          .where((s) => s.isNotEmpty)
-          .toList();
-      if (strings.isNotEmpty) return strings;
-    }
-    return _fallbackGallery;
   }
 
   Widget _buildProfile(Map<String, dynamic> data) {
@@ -1144,59 +1099,6 @@ class _workerProfileViewState extends State<workerProfileView> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Galeria / chip mis trabajos
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mis trabajos',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildEditableGallery(),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.settings_suggest_outlined,
-                        size: 18,
-                      ),
-                      label: const Text('Gestionar servicios'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const pantallaCalendarioTrabajador(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                      label: const Text('Ver mi calendario'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -1249,150 +1151,6 @@ class _workerProfileViewState extends State<workerProfileView> {
     );
   }
 
-  Widget _buildEditableGallery() {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        if (_gallery.isEmpty)
-          Container(
-            width: 150,
-            height: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey.shade100,
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: const Center(
-              child: Text(
-                'Sin imagenes',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54),
-              ),
-            ),
-          ),
-        ..._gallery.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final url = entry.value;
-          return Stack(
-            children: [
-              Container(
-                width: 150,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: NetworkImage(url),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              if (!widget.readOnly)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => _removeGalleryImage(idx),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xCC000000),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          );
-        }),
-        // Boton agregar (solo en modo propio)
-        if (!widget.readOnly)
-          GestureDetector(
-            onTap: _uploadingGallery ? null : _addGalleryImage,
-            child: Container(
-              width: 150,
-              height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400, width: 1.5),
-                color: Colors.grey.shade100,
-              ),
-              child: _uploadingGallery
-                  ? const Center(child: CircularProgressIndicator())
-                  : const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 32,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Agregar nuevo trabajo',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Future<void> _addGalleryImage() async {
-    final file = await pickImageFile();
-    if (file == null) return;
-
-    setState(() => _uploadingGallery = true);
-    try {
-      final url = await _almacenamiento.uploadFile(
-        bytes: file.bytes,
-        filename: file.name,
-        contentType: file.mimeType,
-      );
-
-      final updated = [..._gallery, url];
-      setState(() => _gallery = updated);
-
-      final userId = _idPerfilActivo();
-      if (userId.isNotEmpty) {
-        await _perfilService.actualizarPerfil(userId, {'galeria': updated});
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _uploadingGallery = false);
-    }
-  }
-
-  Future<void> _removeGalleryImage(int index) async {
-    final updated = [..._gallery]..removeAt(index);
-    setState(() => _gallery = updated);
-
-    final userId = _idPerfilActivo();
-    if (userId.isNotEmpty) {
-      try {
-        await _perfilService.actualizarPerfil(userId, {'galeria': updated});
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al eliminar imagen: $e')),
-          );
-        }
-      }
-    }
-  }
-
   Future<void> _pickAndUploadPhoto() async {
     final file = await pickImageFile();
     if (file == null) return;
@@ -1432,7 +1190,6 @@ class _workerProfileViewState extends State<workerProfileView> {
 
   void _initializeControllers(Map<String, dynamic> data) {
     _profileData = Map.from(data);
-    _gallery = _resolveGallery(data['galeria']);
     _initialized = true;
   }
 
@@ -1459,20 +1216,20 @@ class _workerProfileViewState extends State<workerProfileView> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: TemaFixi.colorFondo(context),
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: TemaFixi.colorBarraSuperior(context),
         surfaceTintColor: Colors.transparent,
         title: const Text('Perfil'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF9FBFF), Color(0xFFEEF3FB)],
+            colors: TemaFixi.gradienteFondo(context),
           ),
         ),
         child: body,

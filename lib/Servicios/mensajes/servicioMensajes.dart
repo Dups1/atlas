@@ -13,6 +13,8 @@ class conversacionRemota {
   final String? trabajadorUid;
   final String? clienteNombre;
   final String? trabajadorNombre;
+  final String? clienteFoto;
+  final String? trabajadorFoto;
   final String? ultimoMensaje;
   final String? ultimoSenderUid;
   final DateTime? updatedAt;
@@ -24,6 +26,8 @@ class conversacionRemota {
     this.trabajadorUid,
     this.clienteNombre,
     this.trabajadorNombre,
+    this.clienteFoto,
+    this.trabajadorFoto,
     this.ultimoMensaje,
     this.ultimoSenderUid,
     this.updatedAt,
@@ -49,6 +53,14 @@ class conversacionRemota {
     return 'Cliente';
   }
 
+  /// Foto de perfil del otro usuario en la conversación
+  String fotoLista(String miUid, {required bool vistaCliente}) {
+    if (vistaCliente) {
+      return trabajadorFoto?.trim() ?? '';
+    }
+    return clienteFoto?.trim() ?? '';
+  }
+
   factory conversacionRemota.fromJson(Map<String, dynamic> j) {
     final parts =
         (j['participantes'] as List<dynamic>?)
@@ -62,6 +74,8 @@ class conversacionRemota {
       trabajadorUid: j['trabajadorUid'] as String?,
       clienteNombre: j['clienteNombre'] as String?,
       trabajadorNombre: j['trabajadorNombre'] as String?,
+      clienteFoto: j['clienteFoto'] as String?,
+      trabajadorFoto: j['trabajadorFoto'] as String?,
       ultimoMensaje: j['ultimoMensaje'] as String?,
       ultimoSenderUid: j['ultimoSenderUid'] as String?,
       updatedAt: _parseIso(j['updatedAt'] as String?),
@@ -95,6 +109,8 @@ class conversacionRemota {
       trabajadorUid: m['trabajadorUid'] as String?,
       clienteNombre: m['clienteNombre'] as String?,
       trabajadorNombre: m['trabajadorNombre'] as String?,
+      clienteFoto: m['clienteFoto'] as String?,
+      trabajadorFoto: m['trabajadorFoto'] as String?,
       ultimoMensaje: m['ultimoMensaje'] as String?,
       ultimoSenderUid: m['ultimoSenderUid'] as String?,
       updatedAt: updatedAt,
@@ -107,6 +123,11 @@ class mensajeRemoto {
   final String conversationId;
   final String senderUid;
   final String texto;
+  final String tipo;
+  final String? mediaUrl;
+  final double? latitud;
+  final double? longitud;
+  final int? duracionSegundos;
   final DateTime createdAt;
 
   const mensajeRemoto({
@@ -114,6 +135,11 @@ class mensajeRemoto {
     required this.conversationId,
     required this.senderUid,
     required this.texto,
+    this.tipo = 'texto',
+    this.mediaUrl,
+    this.latitud,
+    this.longitud,
+    this.duracionSegundos,
     required this.createdAt,
   });
 
@@ -132,6 +158,11 @@ class mensajeRemoto {
       conversationId: j['conversationId'] as String? ?? '',
       senderUid: j['senderUid'] as String? ?? '',
       texto: j['texto'] as String? ?? '',
+      tipo: j['tipo'] as String? ?? 'texto',
+      mediaUrl: j['mediaUrl'] as String?,
+      latitud: (j['latitud'] as num?)?.toDouble(),
+      longitud: (j['longitud'] as num?)?.toDouble(),
+      duracionSegundos: (j['duracionSegundos'] as num?)?.toInt(),
       createdAt: created,
     );
   }
@@ -149,6 +180,11 @@ class mensajeRemoto {
       conversationId: convId,
       senderUid: m['senderUid'] as String? ?? '',
       texto: m['texto'] as String? ?? '',
+      tipo: m['tipo'] as String? ?? 'texto',
+      mediaUrl: m['mediaUrl'] as String?,
+      latitud: (m['latitud'] as num?)?.toDouble(),
+      longitud: (m['longitud'] as num?)?.toDouble(),
+      duracionSegundos: (m['duracionSegundos'] as num?)?.toInt(),
       createdAt: createdAt,
     );
   }
@@ -245,11 +281,35 @@ class servicioMensajes {
   }
 
   Future<void> enviarMensaje(String conversationId, String texto) async {
+    return enviarMensajeEspecial(
+      conversationId: conversationId,
+      texto: texto,
+      tipo: 'texto',
+    );
+  }
+
+  Future<void> enviarMensajeEspecial({
+    required String conversationId,
+    String? texto,
+    required String tipo,
+    String? mediaUrl,
+    double? latitud,
+    double? longitud,
+    int? duracionSegundos,
+  }) async {
     final headers = await _headersAuth();
+    final bodyMap = <String, dynamic>{
+      'tipo': tipo,
+    };
+    if (texto != null && texto.isNotEmpty) bodyMap['texto'] = texto;
+    if (mediaUrl != null) bodyMap['mediaUrl'] = mediaUrl;
+    if (latitud != null) bodyMap['latitud'] = latitud;
+    if (longitud != null) bodyMap['longitud'] = longitud;
+    if (duracionSegundos != null) bodyMap['duracionSegundos'] = duracionSegundos;
     final r = await http.post(
       Uri.parse('$baseUrl/mensajes/conversaciones/$conversationId'),
       headers: headers,
-      body: jsonEncode({'texto': texto}),
+      body: jsonEncode(bodyMap),
     );
     if (r.statusCode != 201 && r.statusCode != 200) {
       throw Exception('Error ${r.statusCode}: ${r.body}');
